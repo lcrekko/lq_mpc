@@ -39,7 +39,6 @@ MPC_info = mpc_controller.solve(x0, x_ref, u_ref)
 print(f"Optimal value: {MPC_info['V_N']}")
 print(f"First applied input: {MPC_info['u_0']}")
 
-# This is a test
 
 """
 # ----------- Example usage of a closed-loop MPC ----------
