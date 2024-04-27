@@ -2,17 +2,18 @@ import math
 import cvxpy as cp
 import numpy as np
 import matplotlib.pyplot as plt
+from utils import bar_u_solve, fc_ec_E, local_radius, ex_stability_lq, ex_stability_bounds, fc_omega_eta, fc_ec_h
 plt.rcParams.update({
     "text.usetex": True,
     "font.family": "Computer Modern Roman"
-})# This command is really useful ensuring the math font to be computer modern
-from utils import bar_u_solve, fc_ec_E, local_radius, ex_stability_lq, ex_stability_bounds, fc_omega_eta, fc_ec_h
+})  # This command is really useful ensuring the math font to be computer modern
 
 
 class LQ_MPC_Controller:
     """
     This class is responsible for the open-loop linear quadratic MPC solver
     """
+
     def __init__(self, N, A, B, Q, R, P, F_u):
         """
         Initialize the class
@@ -88,6 +89,7 @@ class Plotter_MPC:
     """
     This class is used to visualize the MPC trajectories, both state and input
     """
+
     def __init__(self, X, U):
         """
         The initialization function for the Plotter_MPC class
@@ -101,21 +103,103 @@ class Plotter_MPC:
         self.T = X.shape[1]
 
     def plot_1_D_state(self, size, font_type, font_size):
-
-        # Do the plotting
+        """
+        Plot the state trajectory in one dimension as time-dependent curves
+        :param size: size of the figure
+        :param font_type: font type in the figure
+        :param font_size: different font size for the text (e.g., title, legend, and labels)
+        :return: NONE
+        """
+        # Plotting each of the trajectories
         plt.figure(figsize=size)
         for i in range(self.n_x):
-            plt.plot(self.X[i, :], label=r'$x_{}$'.format(i+1))
+            plt.plot(self.X[i, :],
+                     drawstyle='steps-post',  # for plotting in zero-order holder style
+                     label=r'$x_{}$'.format(i + 1))
 
         # Specify the labels
-        plt.xlabel(r'Time Step ($t$)', fontdict = {'family': font_type, 'size': font_size["label"], 'weight': 'bold'})
-        plt.ylabel(r'Value of States ($x_i$)', fontdict = {'family': font_type, 'size': font_size["label"], 'weight': 'bold'})
-        plt.title('State Trajectory Plot', fontdict = {'family': font_type, 'size': font_size["title"], 'weight': 'bold'})
-        plt.legend(fontsize = font_size["legend"], prop={'family': font_type, 'size': font_size["legend"]})
+        plt.xlabel(r'Time Step ($t$)', fontdict={'family': font_type, 'size': font_size["label"], 'weight': 'bold'})
+        plt.ylabel(r'Value of States ($x_i$)',
+                   fontdict={'family': font_type, 'size': font_size["label"], 'weight': 'bold'})
+        plt.title('State Trajectory', fontdict={'family': font_type, 'size': font_size["title"], 'weight': 'bold'})
+        plt.legend(fontsize=font_size["legend"], prop={'family': font_type, 'size': font_size["legend"]})
         # Add Grid
         plt.grid(True)
         # Save the plot
         plt.savefig('1-D_state.svg', format='svg', dpi=300)
+        # Show the plot
+        plt.show()
+
+    def plot_1_D_input(self, size, font_type, font_size):
+        """
+        Plot the input trajectory in one dimension as time-dependent curves
+        :param size: size of the figure
+        :param font_type: font type in the figure
+        :param font_size: different font size for the text (e.g., title, legend, and labels)
+        :return: NONE
+        """
+        # Plotting each of the trajectories
+        plt.figure(figsize=size)
+        for i in range(self.n_u):
+            plt.plot(self.U[i, :],
+                     drawstyle='steps-post',
+                     label=r'$u_{}$'.format(i + 1))
+
+        # Specify the descriptions
+        plt.xlabel(r'Time Step ($t$)', fontdict={'family': font_type, 'size': font_size["label"], 'weight': 'bold'})
+        plt.ylabel(r'Value of Inputs ($u_i$)',
+                   fontdict={'family': font_type, 'size': font_size["label"], 'weight': 'bold'})
+        plt.title('Input Trajectory', fontdict={'family': font_type, 'size': font_size["title"], 'weight': 'bold'})
+        plt.legend(fontsize=font_size["legend"], prop={'family': font_type, 'size': font_size["legend"]})
+        # Add Grid
+        plt.grid(True)
+        # Save the plot
+        plt.savefig('1-D_input.svg', format='svg', dpi=300)
+        # Show the plot
+        plt.show()
+
+    def plot_2_D_state(self, size, font_type, font_size):
+        """
+        Plot the state trajectory in two dimensions
+        WARNING: ONLY use if the state is of dimension 2
+        :param size:
+        :param font_type:
+        :param font_size:
+        :return:
+        """
+        # Self checking the dimension of the state
+        if self.n_x >= 3:
+            raise ValueError("The dimension of the state must be 2.")
+
+        # get the two dimensions as separate coordinates
+        x_coordinate = self.X[0, :]
+        y_coordinate = self.X[1, :]
+
+        # Do the plotting
+        plt.figure(figsize=size)
+        # First plot all the data points
+        plt.plot(x_coordinate, y_coordinate,
+                 marker='o',
+                 linestyle='-',
+                 markerfacecolor='r', markeredgecolor='b', markersize=10,
+                 label=r'$x = (x_1, x_2)$')
+        # Distinguish the initial state
+        plt.plot(x_coordinate[0], y_coordinate[0],
+                 marker='s', markersize=10, markerfacecolor='y', markeredgecolor='m',
+                 label=r'$x(0)$')
+        # Set equal axis
+        plt.axis('equal')
+
+        # Specify the descriptions
+        plt.xlabel(r'$x_1$', fontdict={'family': font_type, 'size': font_size["label"], 'weight': 'bold'})
+        plt.ylabel(r'$x_2$', fontdict={'family': font_type, 'size': font_size["label"], 'weight': 'bold'})
+        plt.title('State Trajectory (2-D)',
+                  fontdict={'family': font_type, 'size': font_size["title"], 'weight': 'bold'})
+        plt.legend(fontsize=font_size["legend"], prop={'family': font_type, 'size': font_size["legend"]})
+        # Add Grid
+        plt.grid(True)
+        # Save the plot
+        plt.savefig('2-D_state.svg', format='svg', dpi=300)
         # Show the plot
         plt.show()
 
@@ -124,6 +208,7 @@ class LQ_MPC_Simulator:
     """
     This class is used to solve the closed-loop MPC problem using the open-loop MPC
     """
+
     def __init__(self, T, N, A, B, Q, R, P, F_u):
         """
         The initialization of the LQ_MPC_Simulator
@@ -149,7 +234,7 @@ class LQ_MPC_Simulator:
         self.F_u = F_u
 
         self.U = np.zeros((B.shape[1], T))
-        self.X = np.zeros((A.shape[1], T+1))
+        self.X = np.zeros((A.shape[1], T + 1))
 
     def simulate(self, x0, A_true, B_true, x_ref, u_ref):
         """
@@ -179,13 +264,13 @@ class LQ_MPC_Simulator:
 
             # store the input
             # WARNING: The returned u_0 is of NO dimension, and we need to reshape it!!
-            self.U[:, i:i+1] = temp_out['u_0'].reshape(self.B.shape[1], 1)
+            self.U[:, i:i + 1] = temp_out['u_0'].reshape(self.B.shape[1], 1)
 
             # update the state
             # WARNING: this computed x_next has NO dimension, so we still reshape it first before assigning
             x_next = A_true @ self.X[:, i] + B_true @ temp_out['u_0']
 
-            self.X[:, i+1:i+2] = x_next.reshape(self.A.shape[1], 1)
+            self.X[:, i + 1:i + 2] = x_next.reshape(self.A.shape[1], 1)
 
             # update the cost
             cost += x_next @ self.Q @ x_next  # add the next state cost
@@ -198,6 +283,7 @@ class LQ_RDP_Calculator:
     """
     This class is used to compute the coefficient of RDP performance bound
     """
+
     def __init__(self, N, A, B, Q, R, F_u, e_A, e_B):
         """
         This is the initialization of the class

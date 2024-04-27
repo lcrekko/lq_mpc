@@ -1,10 +1,14 @@
 # import cvxpy as cp
 # import control as ct
 # from utils import *
-from utils_class import LQ_MPC_Controller, LQ_MPC_Simulator
+import math
+from utils_class import LQ_MPC_Controller, LQ_MPC_Simulator, Plotter_MPC
 import numpy as np
 
-# ----------- Example usage of an open-loop MPC ----------
+"""
+Example usage of an open-loop MPC
+"""
+
 N = 10  # Prediction horizon
 
 # Specify the system
@@ -20,7 +24,7 @@ Q = np.eye(n_x)
 R = np.eye(n_u)
 
 # Specify the initial condition
-x0 = np.array([1, 1])
+x0 = np.array([0.8, 0.6])
 
 # Specify the input constraints
 F_u = np.vstack((np.eye(n_u), -np.eye(n_u)))
@@ -36,15 +40,15 @@ u_ref = np.zeros((n_u, N))  # Example reference control inputs
 MPC_info = mpc_controller.solve(x0, x_ref, u_ref)
 
 # Print the results
-print(f"Optimal value: {MPC_info['V_N']}")
+print(f"Open-loop optimal value: {MPC_info['V_N']}")
 print(f"First applied input: {MPC_info['u_0']}")
 
 
 """
-# ----------- Example usage of a closed-loop MPC ----------
-
+Example usage of an closed-loop MPC
+"""
 # Simulation length
-T = 30
+T = 90
 
 # Specify the true system
 A_true = np.array([[1, 0.05], [0.0, 1]])
@@ -57,5 +61,23 @@ mpc_simulator = LQ_MPC_Simulator(T, N, A, B, Q, R, Q, F_u)
 MPC_traj_info = mpc_simulator.simulate(x0, A_true, B_true, x_ref, u_ref)
 
 # Print the results
-print("Closed-loop Cost:", MPC_traj_info['J_T'])
+print(f"Closed-loop cost: {MPC_traj_info['J_T']}")
+print(f"The last state: {MPC_traj_info['X'][:, -1]}")
+
+
 """
+Plotting the closed-loop trajectory
+"""
+
+# Specify figure setting
+fig_height = 3
+fig_size_rectangle = np.array([fig_height * 0.5 * (math.sqrt(5) + 1), fig_height])
+fig_size_square = np.array([fig_height * 0.5 * (math.sqrt(5) + 1), fig_height * 0.5 * (math.sqrt(5) + 1)])
+
+my_font_type = "Times New Roman"
+my_font_size = {"title": fig_height * 4, "label": fig_height * 3, "legend": fig_height * 3}
+
+# do the plotting
+my_plot = Plotter_MPC(MPC_traj_info['X'], MPC_traj_info['U'])
+my_plot.plot_1_D_state(fig_size_rectangle, my_font_type, my_font_size)
+my_plot.plot_2_D_state(fig_size_square, my_font_type, my_font_size)
