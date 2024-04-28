@@ -363,3 +363,36 @@ class LQ_RDP_Calculator:
         my_xi = my_h * info_omega_eta['omega_N1'] + 2 * math.sqrt(my_h) * info_omega_eta['omega_N0d5']
 
         return {'xi': my_xi, 'eta': info_omega_eta['eta']}
+
+
+class Plotter_PF_LQMPC:
+    """
+    This class is used to plot the performance surface in 3D for different initial points.
+    """
+
+    def __init__(self, X, J_MPC_true, J_MPC_bound, V_OPC):
+        """
+        This is the initialization of the class
+        :param X: Meshgrid of the initial state
+        :param J_MPC_true: The true MPC cost computed numerically
+        :param J_MPC_bound: The performance bound computed analytically
+        :param V_OPC: The cost of the infinite-horizon optimal controller
+        """
+        self.X = X
+        self.J_MPC_true = J_MPC_true
+        self.J_MPC_bound = J_MPC_bound
+        self.V_OPC = V_OPC
+
+    def plot_plane_comparison(self):
+        """
+        This function plots all the three performance surface.
+        :return: NONE
+        """
+
+    def plot_line_comparison(self, dim, x):
+        """
+        This function plots all the three performance lines along a dimension
+        :param dim: interested dimension of the plot
+        :param x: the considered state
+        :return: NONE
+        """

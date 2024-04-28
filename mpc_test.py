@@ -70,12 +70,13 @@ Plotting the closed-loop trajectory
 """
 
 # Specify figure setting
-fig_height = 3
-fig_size_rectangle = np.array([fig_height * 0.5 * (math.sqrt(5) + 1), fig_height])
-fig_size_square = np.array([fig_height * 0.5 * (math.sqrt(5) + 1), fig_height * 0.5 * (math.sqrt(5) + 1)])
+fig_height_rectangle = 4
+fig_height_square = 3
+fig_size_rectangle = np.array([fig_height_rectangle * 0.5 * (math.sqrt(5) + 1), fig_height_rectangle])
+fig_size_square = np.array([fig_height_square * 0.5 * (math.sqrt(5) + 1), fig_height_square * 0.5 * (math.sqrt(5) + 1)])
 
 my_font_type = "Times New Roman"
-my_font_size = {"title": fig_height * 4, "label": fig_height * 3, "legend": fig_height * 3}
+my_font_size = {"title": fig_height_square * 4, "label": fig_height_square * 4, "legend": fig_height_square * 4}
 
 # do the plotting
 my_plot = Plotter_MPC(MPC_traj_info['X'], MPC_traj_info['U'])
