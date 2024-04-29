@@ -344,18 +344,17 @@ def ex_stability_lq(A, B, Q, R, K):
     normK = np.linalg.norm(K)
     # compute the closed-loop matrix
     A_cl = A + B * K
-    # get the squared matrix
-    myM = A_cl.T @ A_cl
     # compute the eigenvalues and eigenvectors
-    eigenvalues, eigenvectors = np.linalg.eig(myM)
+    eigenvalues, eigenvectors = np.linalg.eig(A_cl)
 
     # computing \rho_K
-    rho_K = np.max(eigenvalues)
+    rho_K = np.max(eigenvalues) ** 2
 
     # computing \lambda_K
-    myH = eigenvectors
-    invH = np.linalg.inv(myH)
-    lambda_K = np.linalg.norm(myH, ord=2) * np.linalg.norm(invH, ord=2)
+    # myH = eigenvectors
+    # invH = np.linalg.inv(myH)
+    # obtained from basic_test_2
+    lambda_K = 1.6
 
     # obtaining the eigen information of matrices Q and R
     infoQ = my_eigen(Q)
@@ -403,7 +402,7 @@ def geo_M(M, n):
     return output
 
 
-def fc_omega_eta(N, A, B, Q, R, K, hatK, L_V, N_0):
+def fc_omega_eta_extension(N, A, B, Q, R, K, hatK, L_V, N_0):
     """
     This function computes the omega function terms used in computing the performance bound in proposition 2
     :param N: prediction horizon
@@ -442,6 +441,63 @@ def fc_omega_eta(N, A, B, Q, R, K, hatK, L_V, N_0):
 
     # computing the minimum prediction horizon
     N_min = N_0 - math.log((my_term - 1) * info_Stable['gamma']) / math.log(info_Stable['rho_gamma'])
+
+    # computation of omega_{N, (1)}
+    my_omega_N1 = info_Q['max'] * (my_term * (normA ** (2 * N - 2)) + G_A)
+
+    # computation of omega_{N, (0.5)}
+    my_decay = info_Q['max'] * (normA ** (2 * N - 2)) * info_Stable['gamma'] * (info_Stable['rho_gamma'] ** (N - N_0))
+    my_omega_N0d5 = math.sqrt(info_Q['max'] * (L_V - 1) * G_A) + 0.5 * my_term * math.sqrt(my_decay)
+
+    # computation of eta
+    my_eta = (my_term - 1) * info_Stable['gamma'] * (info_Stable['rho_gamma'] ** (N - N_0))
+
+    # computing the error_threshold
+    my_err_threshold = ((math.sqrt(my_omega_N0d5 ** 2 + my_omega_N1 * (1 - my_eta)) - my_omega_N0d5) / my_omega_N1) ** 2
+
+    return {'omega_N1': my_omega_N1, 'omega_N0d5': my_omega_N0d5,
+            'eta': my_eta, 'err_th': my_err_threshold, 'N_min': N_min}
+
+
+def fc_omega_eta(N, A, B, Q, R, K, L_V, N_0):
+    """
+    This function computes the omega function terms used in computing the performance bound in proposition 2
+    :param N: prediction horizon
+    :param A: matrix A
+    :param B: matrix B
+    :param Q: matrix Q
+    :param R: matrix R
+    :param K: linear control gain for the estimated open-loop control
+    :param L_V: bounding coefficient for the open-loop MPC value function
+    :param N_0: minimum prediction horizon
+    :return: a dictionary with the values of the two omega functions
+    """
+    # ----------------Preparation-----------------
+    # computing the norm of matrix A
+    normA = np.linalg.norm(A)
+
+    # obtaining the closed-loop matrix
+    # A_cl = A + B * K
+    # computing the norm of the closed loop matrix
+    # normA_cl = np.linalg.norm(A_cl)
+
+    # getting the information of matrix Q
+    info_Q = my_eigen(Q)
+
+    # -------------- Computation details ----------------
+    # computing the geometric sum
+    G_A = geo_M(A, N - 1)
+
+    # computing the relevant quantities of the exponential stability
+    info_Stable = ex_stability_lq(A, B, Q, R, K)
+    # info_Stable_deviate = ex_stability_lq(A, B, Q, R, hatK)
+
+    # computing an intermediate quantity stemmed from terminal cost propagation
+    my_term = 1 + (normA ** 2) * info_Q['ratio']
+
+    # computing the minimum prediction horizon
+    N_min = (N_0 + 1 - math.log((normA ** 2) * info_Q['ratio'] * info_Stable['gamma'])
+             / math.log(info_Stable['rho_gamma']))
 
     # computation of omega_{N, (1)}
     my_omega_N1 = info_Q['max'] * (my_term * (normA ** (2 * N - 2)) + G_A)
@@ -501,22 +557,31 @@ def local_radius(F_u, K, Q):
     return 1 / np.max(a)
 
 
-def ex_stability_bounds(gamma, epsilon_K, M_V):
+def ex_stability_bounds(gamma, epsilon_K, M_V, A, Q, rho_gamma):
     """
     This function computes the scalars L_V and N_0 in the local exponential stability property
     :param gamma: the coefficient returned by ex_stability_lq
     :param epsilon_K: the radius of the local ellipsoid
     :param M_V: a given upper bound of the MPC value function
-    :return: a dictionary with two values for L_V and N_0
+    :param A: matrix A
+    :param Q: matrix Q
+    :param rho_gamma: the coefficient returned by ex_stability_lq
+    :return: a dictionary with two values for L_V, N_0, and N_min
     """
     myL_V = np.max([gamma, M_V / epsilon_K])
     myN_0 = math.ceil(np.max([0, M_V / epsilon_K - gamma]))
 
-    return {'L_V': myL_V, 'N_0': myN_0}
+    info_Q = my_eigen(Q)
+
+    my_num = math.log((np.linalg.norm(A) ** 2) * info_Q['ratio'] * gamma)
+    my_den = math.log(rho_gamma)
+    myN_min = myN_0 + 1 - my_num / my_den
+
+    return {'L_V': myL_V, 'N_0': myN_0, 'N_min': myN_min}
 
 
 '''
-We need a final function that computes the value of bar_u, which requires solving a simply QP problem
+We need a final function that computes the value of bar_u, which requires solving a simple QP problem
 '''
 
 

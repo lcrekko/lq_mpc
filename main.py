@@ -1,6 +1,6 @@
 import numpy as np
 import control as ct
-from utils import local_radius, rot_action_2D, ex_stability_lq, ex_stability_bounds
+from utils import local_radius, rot_action_2D, ex_stability_lq, ex_stability_bounds, fc_omega_eta
 from scipy.linalg import cho_factor
 # import numpy.linalg as la
 import math
@@ -55,7 +55,7 @@ x0_vec = rot_action_2D(x0_base, my_theta)
 
 # ------------- Computing the energy bar M_{\hat{V}} -------------
 # A test horizon
-N_horizon_test = 10
+N_horizon_test = 80
 
 # Create the test MPC controller
 # here P is set as Q since we do not have a terminal cost
@@ -78,7 +78,20 @@ M_V_test = np.max(energy_vec)
 
 info_lqr_ex = ex_stability_lq(A, B, Q, R, -K_lqr)
 
-info_lqr_bar = ex_stability_bounds(info_lqr_ex['gamma'], epsilon_lqr, M_V_test)
+info_lqr_bar = ex_stability_bounds(info_lqr_ex['gamma'], epsilon_lqr, M_V_test, A, Q, info_lqr_ex['rho_gamma'])
 
-print('The minimum required prediction horizon:', info_lqr_bar['N_0'])
+info_error = fc_omega_eta(N_horizon_test, A, B, Q, R, -K_lqr, info_lqr_bar['L_V'], info_lqr_bar['N_0'])
+
+print(f"The chosen energy bound is", M_V_test)
+print(f"The norm of the estimated system is", np.linalg.norm(A))
+print("\n")
+print(f"The coefficient C_K", {info_lqr_ex['C_K']})
+print(f"The coefficient lambda_K", {info_lqr_ex['lambda_K']})
+print(f"The coefficient rho_K", {info_lqr_ex['rho_K']})
+print(f"The coefficient gamma", {info_lqr_ex['gamma']})
+print(f"The coefficient rho_gamma", {info_lqr_ex['rho_gamma']})
+print("\n")
+print(f"The radius epsilon corresponding to the LQR is", {epsilon_lqr})
+print(f"The minimum required prediction horizon:", info_lqr_bar['N_min'])
 print('The used horizon:', N_horizon_test)
+print('The error threshold:', info_error['err_th'])
