@@ -2,7 +2,8 @@ import math
 import cvxpy as cp
 import numpy as np
 import matplotlib.pyplot as plt
-from utils import bar_u_solve, fc_ec_E, local_radius, ex_stability_lq, ex_stability_bounds, fc_omega_eta, fc_ec_h
+from utils import (bar_u_solve, fc_ec_E, local_radius, ex_stability_lq, ex_stability_bounds, fc_omega_eta,
+                   fc_ec_h, fc_omega_eta_extension)
 plt.rcParams.update({
     "text.usetex": True,
     "font.family": "Computer Modern Roman"
@@ -335,10 +336,9 @@ class LQ_RDP_Calculator:
 
         return {'alpha': my_alpha, 'beta': my_beta}
 
-    def energy_decreasing(self, hatK, K, M_V):
+    def energy_decreasing(self, K, M_V):
         """
         Compute the term xi and eta in the RDP energy-decreasing inequality
-        :param hatK: The terminal linear gain for the deviated state
         :param K: The terminal linear gain for the original state using the estimated system
         :param M_V: The bound of the open-loop MPC value function
         :return: a dictionary that contains the values of the term xi and eta
@@ -354,7 +354,37 @@ class LQ_RDP_Calculator:
         info_bd = ex_stability_bounds(info_stable['gamma'], my_epsilon, M_V)
 
         # compute the terms omega and eta
-        info_omega_eta = fc_omega_eta(self.N, self.A, self.B, self.Q, self.R, K, hatK, info_bd['L_V'], info_bd['N_0'])
+        info_omega_eta = fc_omega_eta(self.N, self.A, self.B, self.Q, self.R, K, info_bd['L_V'], info_bd['N_0'])
+
+        # compute the term h
+        my_h = fc_ec_h(self.e_A, self.e_B, self.Q, self.R)
+
+        # compute the term xi
+        my_xi = my_h * info_omega_eta['omega_N1'] + 2 * math.sqrt(my_h) * info_omega_eta['omega_N0d5']
+
+        return {'xi': my_xi, 'eta': info_omega_eta['eta']}
+
+    def energy_decreasing_extension(self, K, hatK, M_V):
+        """
+        Compute the term xi and eta in the RDP energy-decreasing inequality
+        :param K: The terminal linear gain for the original state using the estimated system
+        :param hatK: The terminal linear gain for the deviated system
+        :param M_V: The bound of the open-loop MPC value function
+        :return: a dictionary that contains the values of the term xi and eta
+        """
+
+        # compute the local radius
+        my_epsilon = local_radius(self.F_u, K, self.Q)
+
+        # compute the stability information to get a desired gamma
+        info_stable = ex_stability_lq(self.A, self.B, self.Q, self.R, K)
+
+        # compute the bounding constants
+        info_bd = ex_stability_bounds(info_stable['gamma'], my_epsilon, M_V)
+
+        # compute the terms omega and eta
+        info_omega_eta = fc_omega_eta_extension(self.N, self.A, self.B, self.Q, self.R, K, hatK,
+                                                info_bd['L_V'], info_bd['N_0'])
 
         # compute the term h
         my_h = fc_ec_h(self.e_A, self.e_B, self.Q, self.R)

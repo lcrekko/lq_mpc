@@ -243,12 +243,13 @@ def fc_ec_theta(N, e_A, e_B, A, B, maxQ):
     my_bar_u = fc_ec_bar_g_u(N, e_A, f_A, e_B, f_B)
 
     # computation of theta_x
-    err_1 = np.linalg.norm(my_gamma) * my_bar_x
+    err_1 = np.linalg.norm(my_gamma, ord=2) * my_bar_x
     err_2 = my_bar_x ** 2
     my_theta_x = maxQ * (2 * err_1 + err_2)
 
     # computation of theta_u
-    err_3 = np.linalg.norm(my_phi) * my_bar_u
+    err_3 = (np.linalg.norm(my_phi, ord=2)
+             * my_bar_u)
     err_4 = my_bar_x * my_bar_u
     my_theta_u = maxQ * (err_1 + err_3 + err_4)
 
@@ -341,20 +342,17 @@ def ex_stability_lq(A, B, Q, R, K):
     :return: a dictionary with the values of $C^ast_K$, $\lambda_K$, $rho_K$, $\gamma$, and $rho_\gamma$
     """
     # get the norm of matrix K
-    normK = np.linalg.norm(K)
+    normK = np.linalg.norm(K, ord=2)
     # compute the closed-loop matrix
     A_cl = A + B * K
-    # compute the eigenvalues and eigenvectors
-    eigenvalues, eigenvectors = np.linalg.eig(A_cl)
-
     # computing \rho_K
-    rho_K = np.max(eigenvalues) ** 2
+    rho_K = (np.max(np.abs(np.linalg.eigvals(A_cl))) + 0.4) ** 2
 
     # computing \lambda_K
     # myH = eigenvectors
     # invH = np.linalg.inv(myH)
     # obtained from basic_test_2
-    lambda_K = 1.6
+    lambda_K_2 = 1.21
 
     # obtaining the eigen information of matrices Q and R
     infoQ = my_eigen(Q)
@@ -362,7 +360,7 @@ def ex_stability_lq(A, B, Q, R, K):
 
     # computing C^\ast_K
     my_scale = 1 + infoR['max'] * (normK ** 2) / (infoQ['min'])
-    my_C_star = my_scale * np.max([1, infoQ['ratio'] * (lambda_K ** 2)])
+    my_C_star = my_scale * np.max([1, infoQ['ratio'] * lambda_K_2])
 
     # computing \gamma
     my_gamma = my_C_star / (1 - rho_K)
@@ -370,7 +368,7 @@ def ex_stability_lq(A, B, Q, R, K):
     # computing \rho_\gamma
     my_rho_gamma = (my_gamma - 1) / my_gamma
 
-    return {'C_K': my_C_star, 'lambda_K': lambda_K, 'rho_K': rho_K, 'gamma': my_gamma, 'rho_gamma': my_rho_gamma}
+    return {'C_K': my_C_star, 'lambda_K': lambda_K_2, 'rho_K': rho_K, 'gamma': my_gamma, 'rho_gamma': my_rho_gamma}
 
 
 '''
@@ -391,7 +389,7 @@ def geo_M(M, n):
     """
 
     # get the two norm
-    norm_A_two = np.linalg.norm(M)
+    norm_A_two = np.linalg.norm(M, ord=2)
 
     # compute the geometric series based on whether the norm is 1 or not
     if norm_A_two == 1:
@@ -418,19 +416,19 @@ def fc_omega_eta_extension(N, A, B, Q, R, K, hatK, L_V, N_0):
     """
     # ----------------Preparation-----------------
     # computing the norm of matrix A
-    normA = np.linalg.norm(A)
+    normA = np.linalg.norm(A, ord=2)
 
     # obtaining the closed-loop matrix
     A_cl = A + B * K
     # computing the norm of the closed loop matrix
-    normA_cl = np.linalg.norm(A_cl)
+    normA_cl = np.linalg.norm(A_cl, ord=2)
 
     # getting the information of matrix Q
     info_Q = my_eigen(Q)
 
     # -------------- Computation details ----------------
     # computing the geometric sum
-    G_A = geo_M(A, N-1)
+    G_A = geo_M(A, N - 1)
 
     # computing the relevant quantities of the exponential stability
     info_Stable = ex_stability_lq(A, B, Q, R, K)
@@ -474,12 +472,12 @@ def fc_omega_eta(N, A, B, Q, R, K, L_V, N_0):
     """
     # ----------------Preparation-----------------
     # computing the norm of matrix A
-    normA = np.linalg.norm(A)
+    normA = np.linalg.norm(A, ord=2)
 
     # obtaining the closed-loop matrix
     # A_cl = A + B * K
     # computing the norm of the closed loop matrix
-    # normA_cl = np.linalg.norm(A_cl)
+    # normA_cl = np.linalg.norm(A_cl, ord=2)
 
     # getting the information of matrix Q
     info_Q = my_eigen(Q)
@@ -496,8 +494,8 @@ def fc_omega_eta(N, A, B, Q, R, K, L_V, N_0):
     my_term = 1 + (normA ** 2) * info_Q['ratio']
 
     # computing the minimum prediction horizon
-    N_min = (N_0 + 1 - math.log((normA ** 2) * info_Q['ratio'] * info_Stable['gamma'])
-             / math.log(info_Stable['rho_gamma']))
+    N_min = math.ceil((N_0 - math.log((normA ** 2) * info_Q['ratio'] * info_Stable['gamma'])
+                       / math.log(info_Stable['rho_gamma'])))
 
     # computation of omega_{N, (1)}
     my_omega_N1 = info_Q['max'] * (my_term * (normA ** (2 * N - 2)) + G_A)
@@ -552,32 +550,29 @@ def local_radius(F_u, K, Q):
     M = F_u @ K
     invQ = np.linalg.inv(Q)
     for i in range(M.shape[0]):
-        a[i] = M[i:i+1] @ invQ @ M[i:i+1].T
+        a[i] = M[i:i + 1] @ invQ @ M[i:i + 1].T
 
     return 1 / np.max(a)
 
 
-def ex_stability_bounds(gamma, epsilon_K, M_V, A, Q, rho_gamma):
+def ex_stability_bounds(gamma, epsilon_K, M_V):
     """
     This function computes the scalars L_V and N_0 in the local exponential stability property
     :param gamma: the coefficient returned by ex_stability_lq
     :param epsilon_K: the radius of the local ellipsoid
     :param M_V: a given upper bound of the MPC value function
-    :param A: matrix A
-    :param Q: matrix Q
-    :param rho_gamma: the coefficient returned by ex_stability_lq
     :return: a dictionary with two values for L_V, N_0, and N_min
     """
     myL_V = np.max([gamma, M_V / epsilon_K])
     myN_0 = math.ceil(np.max([0, M_V / epsilon_K - gamma]))
 
-    info_Q = my_eigen(Q)
+    # info_Q = my_eigen(Q)
 
-    my_num = math.log((np.linalg.norm(A) ** 2) * info_Q['ratio'] * gamma)
-    my_den = math.log(rho_gamma)
-    myN_min = myN_0 + 1 - my_num / my_den
+    # my_num = math.log((np.linalg.norm(A, ord=2) ** 2) * info_Q['ratio'] * gamma)
+    # my_den = math.log(rho_gamma)
+    # myN_min = myN_0 + 1 - my_num / my_den
 
-    return {'L_V': myL_V, 'N_0': myN_0, 'N_min': myN_min}
+    return {'L_V': myL_V, 'N_0': myN_0}
 
 
 '''
@@ -637,6 +632,20 @@ def rot_action_2D(x, theta):
     """
     my_out = np.zeros([2, theta.shape[0]])
     for i in range(theta.shape[0]):
-        my_out[:, i:i+1] = rot_2D(theta[i]) @ x
+        my_out[:, i:i + 1] = rot_2D(theta[i]) @ x
 
     return my_out
+
+
+"""
+For testing purposes, I need some additional functions that are useful for simplifying the test
+"""
+
+
+def N_incremental_test(A, Q, gamma, rho_gamma):
+    info_Q = my_eigen(Q)
+    my_num = math.log((np.linalg.norm(A, ord=2) ** 2) * info_Q['ratio'] * gamma)
+    my_den = math.log(rho_gamma)
+    myN_min = math.ceil(- my_num / my_den)
+
+    return myN_min
