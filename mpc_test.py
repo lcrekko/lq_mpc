@@ -20,7 +20,7 @@ n_x = A.shape[0]
 n_u = B.shape[1]
 
 # Specify the cost
-Q = np.eye(n_x)
+Q = 2 * np.eye(n_x)
 R = np.eye(n_u)
 
 # Specify the initial condition

@@ -4,7 +4,7 @@ from utils import local_radius, rot_action_2D, ex_stability_lq, ex_stability_bou
 from scipy.linalg import cho_factor
 # import numpy.linalg as la
 import math
-from utils_class import LQ_MPC_Controller, LQ_RDP_Calculator
+from utils_class import LQ_MPC_Controller, LQ_RDP_Calculator, LQ_RDP_Behavior
 
 
 """
@@ -108,12 +108,15 @@ Print the result to see whether the energy is indeed decreasing
 # choose the error bound to be smaller than the threshold
 e_A = 0.01
 e_B = 0.01
-mycalculator = LQ_RDP_Calculator(N_horizon_test, A, B, Q, R, F_u, e_A, e_B)
-info_decrease = mycalculator.energy_decreasing(-K_lqr, M_V_test)
+my_calculator = LQ_RDP_Calculator(A, B, Q, R, F_u)
+info_decrease = my_calculator.energy_decreasing(N_horizon_test, e_A, e_B, -K_lqr, M_V_test)
 
 # choose the pairs (p_i, q_i)
 p = np.array([0.1, 1, 0.6])  # a trivial default choice
-info_bound = mycalculator.energy_bound(1 * x0_vec[:, 0], p)
+info_bound = my_calculator.energy_bound(N_horizon_test, e_A, e_B, 1 * x0_vec[:, 0], p)
 
 print(info_decrease)
 print(info_bound)
+
+my_behavior = LQ_RDP_Behavior(A, B, Q, R, F_u, N_horizon_test, 10, -6, -2)
+info_xi = my_behavior.data_generation_xi()

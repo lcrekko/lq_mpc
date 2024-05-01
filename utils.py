@@ -580,19 +580,24 @@ def ex_stability_bounds(gamma, epsilon_K, M_V):
 
 
 '''
-We need a final function that computes the value of bar_u, which requires solving simple QP problems
+We need a final function that computes the value of bar_u, and bar_d_u, which requires solving optimization problems
 '''
 
 
 def bar_u_solve(F_u):
+    """
+    This function computes the value of the maximum u
+    :param F_u: The matrix defining the polytopic constraints
+    :return: The optimal solution
+    """
     n_constr = F_u.shape[0]
     dim_u = F_u.shape[1]
 
     # create the model
-    model = gp.Model("myQP_1")
+    model = gp.Model("maximum-norm")
 
     # define the decision variable
-    u = model.addVars(dim_u, name="u")
+    u = model.addVars(dim_u, lb=-GRB.INFINITY, name="u")
 
     # Set objective function: maximize the squared Euclidean norm
     model.setObjective(gp.quicksum(u[i] * u[i] for i in range(dim_u)), GRB.MAXIMIZE)
@@ -605,6 +610,35 @@ def bar_u_solve(F_u):
     model.optimize()
 
     return model.objVal
+
+
+def bar_d_u_solve(F_u):
+    """
+    This function computes the value of the maximum difference
+    :param F_u: The matrix defining the polytopic constraints
+    :return: The optimal solution
+    """
+    n_constr = F_u.shape[0]
+    dim_u = F_u.shape[1]
+
+    # Define the model
+    model = gp.Model("maximum-difference")
+
+    # Create variables
+    u_1 = model.addVars(dim_u, lb=-GRB.INFINITY, name="u_1")
+    u_2 = model.addVars(dim_u, lb=-GRB.INFINITY, name="u_2")
+
+    # Set objective
+    model.setObjective(gp.quicksum((u_1[i] - u_2[i]) * (u_1[i] - u_2[i]) for i in range(dim_u)), GRB.MAXIMIZE)
+
+    for i in range(F_u.shape[0]):
+        model.addConstr(gp.quicksum(F_u[i, j] * u_1[j] for j in range(dim_u)) <= 1)
+        model.addConstr(gp.quicksum(F_u[i, j] * u_2[j] for j in range(dim_u)) <= 1)
+
+    # Optimize
+    model.optimize()
+
+
 
 
 """
@@ -649,3 +683,37 @@ def N_incremental_test(A, Q, gamma, rho_gamma):
     myN_min = math.ceil(- my_num / my_den)
 
     return myN_min
+
+
+"""
+Some additional functions for plotting
+"""
+
+
+def default_color_generator():
+    my_color_dict = {'C0': np.array([0.12156862745098039, 0.4666666666666667, 0.7058823529411765]),
+                     'C1': np.array([1.0, 0.4980392156862745, 0.054901960784313725]),
+                     'C2': np.array([0.17254901960784313, 0.6274509803921569, 0.17254901960784313]),
+                     'C3': np.array([0.8392156862745098, 0.15294117647058825, 0.1568627450980392]),
+                     'C4': np.array([0.5803921568627451, 0.403921568627451, 0.7411764705882353]),
+                     'C5': np.array([0.5490196078431373, 0.33725490196078434, 0.29411764705882354]),
+                     'C6': np.array([0.8901960784313725, 0.4666666666666667, 0.7607843137254902]),
+                     'C7': np.array([0.4980392156862745, 0.4980392156862745, 0.4980392156862745]),
+                     'C8': np.array([0.7372549019607844, 0.7411764705882353, 0.13333333333333333]),
+                     'C9': np.array([0.09019607843137255, 0.7450980392156863, 0.8117647058823529])}
+
+    return my_color_dict
+
+
+def gradient_color(Value, color_base):
+    min_Value = Value.min()
+    max_Value = Value.max()
+    colors_z = ['color' for _ in range(len(Value.flatten()))]
+    for i, z_val in enumerate(Value.flatten()):
+        normalized_z = (z_val - min_Value) / (max_Value - min_Value)
+        colors_z[i] = (normalized_z * color_base[0],
+                       normalized_z * color_base[1],
+                       normalized_z * color_base[2],
+                       1)  # (R, G, B, alpha)
+
+    return colors_z
