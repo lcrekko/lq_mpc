@@ -119,4 +119,5 @@ print(info_decrease)
 print(info_bound)
 
 my_behavior = LQ_RDP_Behavior(A, B, Q, R, F_u, N_horizon_test, 10, -6, -2)
-info_xi = my_behavior.data_generation_xi()
+info_xi = my_behavior.data_generation_xi(-K_lqr, M_V_test, N_horizon_test, 0.01)
+info_alpha_beta = my_behavior.data_generation_alpha_beta(x0_vec[:, 1], p, N_horizon_test, 0.01)
