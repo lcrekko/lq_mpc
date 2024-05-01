@@ -2,8 +2,8 @@ import math
 import cvxpy as cp
 import numpy as np
 import matplotlib.pyplot as plt
-from utils import (bar_u_solve, fc_ec_E, local_radius, ex_stability_lq, ex_stability_bounds, fc_omega_eta,
-                   fc_ec_h, fc_omega_eta_extension)
+from utils import (bar_u_solve, fc_ec_E, local_radius, ex_stability_lq, ex_stability_bounds,
+                   fc_omega_eta, fc_ec_h, fc_omega_eta_extension)
 plt.rcParams.update({
     "text.usetex": True,
     "font.family": "Computer Modern Roman"
@@ -317,21 +317,24 @@ class LQ_RDP_Calculator:
         # compute the maximum value of \|u\|^2_2 under the input constraints
         bar_u = bar_u_solve(self.F_u)
 
+        # compute the maximum value of \|u_1 - u_2\|^2_2 under the input constraints
+        bar_d_u = 0.04
+
         # compute the values of E_\psi, E_u and E_{\psi,u}
-        val_E = fc_ec_E(self.N, self.e_A, self.e_B, self.A, self.B, self.Q, self.R, x, bar_u)
+        val_E = fc_ec_E(self.N, self.e_A, self.e_B, self.A, self.B, self.Q, self.R, x, bar_u, bar_d_u)
 
         # compute the value of q given p
         q = 1 / p
 
         # compute the term alpha
-        term_alpha_1 = (p[0] * math.sqrt(val_E['E_psi']) + p[1] * math.sqrt(val_E['E_psi_u']) +
-                        p[0] * math.sqrt(val_E['E_psi']) * p[1] * math.sqrt(val_E['E_psi_u']))
-        term_alpha_2 = p[2] * math.sqrt(val_E['E_u'])
+        term_alpha_1 = (p[0] * math.sqrt(val_E['E_psi']) + p[2] * math.sqrt(val_E['E_psi_u']) +
+                        p[0] * math.sqrt(val_E['E_psi']) * p[2] * math.sqrt(val_E['E_psi_u']))
+        term_alpha_2 = p[1] * math.sqrt(val_E['E_u'])
         my_alpha = np.max([term_alpha_1, term_alpha_2])
 
         # compute the term beta
-        term_beta_1 = (1 + p[1] * math.sqrt(val_E['E_psi'])) * (q[1] * math.sqrt(val_E['E_psi_u']) + val_E['E_psi_u'])
-        term_beta_2 = q[2] * math.sqrt(val_E['E_u']) + val_E['E_u'] + q[0] * math.sqrt(val_E['E_psi']) + val_E['E_psi']
+        term_beta_1 = (1 + p[0] * math.sqrt(val_E['E_psi'])) * (q[2] * math.sqrt(val_E['E_psi_u']) + val_E['E_psi_u'])
+        term_beta_2 = q[1] * math.sqrt(val_E['E_u']) + val_E['E_u'] + q[0] * math.sqrt(val_E['E_psi']) + val_E['E_psi']
         my_beta = term_beta_1 + term_beta_2
 
         return {'alpha': my_alpha, 'beta': my_beta}

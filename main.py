@@ -24,7 +24,7 @@ R = np.eye(1)
 root_Q, lower_Q = cho_factor(Q)
 
 # Specify the input constraints -- We simply confine -1 <= u <= 1
-F_u = np.array([[1], [-1]])
+F_u = np.array([[10], [-10]])
 
 # Specify the number of the initial states that will be simulated
 N_init = 4
@@ -109,6 +109,11 @@ Print the result to see whether the energy is indeed decreasing
 e_A = 0.01
 e_B = 0.01
 mycalculator = LQ_RDP_Calculator(N_horizon_test, A, B, Q, R, F_u, e_A, e_B)
-info_increase = mycalculator.energy_decreasing(-K_lqr, M_V_test)
+info_decrease = mycalculator.energy_decreasing(-K_lqr, M_V_test)
 
-print(info_increase)
+# choose the pairs (p_i, q_i)
+p = np.array([0.1, 1, 0.6])  # a trivial default choice
+info_bound = mycalculator.energy_bound(1 * x0_vec[:, 0], p)
+
+print(info_decrease)
+print(info_bound)

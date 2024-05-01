@@ -34,7 +34,9 @@ From Proposition 2: energy-decreasing factors
 13. fc_ec_h --- $h$
 """
 import numpy as np
-import cvxpy as cp
+# import cvxpy as cp
+import gurobipy as gp
+from gurobipy import GRB
 import math
 
 '''
@@ -243,20 +245,21 @@ def fc_ec_theta(N, e_A, e_B, A, B, maxQ):
     my_bar_u = fc_ec_bar_g_u(N, e_A, f_A, e_B, f_B)
 
     # computation of theta_x
-    err_1 = np.linalg.norm(my_gamma, ord=2) * my_bar_x
-    err_2 = my_bar_x ** 2
-    my_theta_x = maxQ * (2 * err_1 + err_2)
+    err_1 = np.linalg.norm(my_gamma, ord=2) * my_bar_u
+    err_2 = my_bar_u ** 2
+    my_theta_u = maxQ * (2 * err_1 + err_2)
 
     # computation of theta_u
-    err_3 = (np.linalg.norm(my_phi, ord=2)
+    err_3 = np.linalg.norm(my_gamma, ord=2) * my_bar_x
+    err_4 = (np.linalg.norm(my_phi, ord=2)
              * my_bar_u)
-    err_4 = my_bar_x * my_bar_u
-    my_theta_u = maxQ * (err_1 + err_3 + err_4)
+    err_5 = my_bar_x * my_bar_u
+    my_theta_x_u = maxQ * (err_3 + err_4 + err_5)
 
-    return {'theta_x': my_theta_x, 'theta_u': my_theta_u}
+    return {'theta_u': my_theta_u, 'theta_x_u': my_theta_x_u}
 
 
-def fc_ec_E(N, e_A, e_B, A, B, Q, R, x, bar_u):
+def fc_ec_E(N, e_A, e_B, A, B, Q, R, x, bar_u, bar_d_u):
     """
     This function computes the error-consistent terms E_{N,(\psi)}, E_{N,(u)}, and E_{N,(\psi, u)}
     :param N: prediction horizon
@@ -268,6 +271,7 @@ def fc_ec_E(N, e_A, e_B, A, B, Q, R, x, bar_u):
     :param R: matrix R
     :param x: the initial state
     :param bar_u: the solution to a simple QP that returns the input two norm
+    :param bar_d_u: the solution to a simple QP that returns the difference input norm
     :return: a dictionary with the value of the error-consistent terms E_{N,(\psi)}, E_{N,(u)}, and E_{N,(\psi, u)}
     """
 
@@ -301,7 +305,7 @@ def fc_ec_E(N, e_A, e_B, A, B, Q, R, x, bar_u):
     info_theta = fc_ec_theta(N, e_A, e_B, A, B, info_Q['max'])
 
     # compute the term bar_theta
-    my_bar_theta = np.max([info_theta['theta_x'], norm_x * info_theta['theta_u']])
+    my_bar_theta = math.sqrt(N * bar_u) * info_theta['theta_u'] + np.linalg.norm(x, ord=2) * info_theta['theta_x_u']
 
     # ----- formulate the big matrix hatH_N -----
     my_gamma = sl_syn_Gamma(N, A, B)  # form gamma
@@ -313,7 +317,7 @@ def fc_ec_E(N, e_A, e_B, A, B, Q, R, x, bar_u):
     min_H = np.min(np.linalg.eigvals(hatH))
 
     # final computation
-    my_E_u = info_R['max'] * (my_bar_theta ** 2) * ((1 + math.sqrt(N * bar_u)) ** 2) / ((min_H - my_bar_theta) ** 2)
+    my_E_u = info_R['max'] * (np.min([math.sqrt(N * bar_d_u), my_bar_theta / min_H]) ** 2)
 
     # ----------- computing the term E_{N, (\psi, u)} -------------
     my_bar_g_u = fc_ec_bar_g_u(N, e_A, f_A, e_B, f_B)  # form bar_g_u
@@ -576,35 +580,31 @@ def ex_stability_bounds(gamma, epsilon_K, M_V):
 
 
 '''
-We need a final function that computes the value of bar_u, which requires solving a simple QP problem
+We need a final function that computes the value of bar_u, which requires solving simple QP problems
 '''
 
 
 def bar_u_solve(F_u):
-    """
-    This function computes the value of bar_u
-    :param F_u: the matrix defining the linear constraints on the input
-    :return: the value of the maximum of ||u||^2_2
-    """
+    n_constr = F_u.shape[0]
+    dim_u = F_u.shape[1]
 
-    # defining the decision variable
-    u = cp.Variable(F_u.shape[1])
+    # create the model
+    model = gp.Model("myQP_1")
 
-    # defining the cost
-    cost = cp.quad_form(u, np.eye(F_u.shape[1]))
+    # define the decision variable
+    u = model.addVars(dim_u, name="u")
 
-    # defining the constraints
-    constraints = [F_u @ u <= np.ones((F_u.shape[0], 1))]
+    # Set objective function: maximize the squared Euclidean norm
+    model.setObjective(gp.quicksum(u[i] * u[i] for i in range(dim_u)), GRB.MAXIMIZE)
 
-    # defining the objective
-    objective = cp.Maximize(cost)
+    # Add constraint F_u * u <= 1
+    for i in range(n_constr):
+        model.addConstr(gp.quicksum(F_u[i, j] * u[j] for j in range(dim_u)) <= 1)
 
-    # defining the problem and solve it
-    prob = cp.Problem(objective, constraints)
-    prob.solve()
+    # Solve the problem
+    model.optimize()
 
-    # returning the final objective value
-    return prob.value
+    return model.objVal
 
 
 """

@@ -9,11 +9,11 @@ import numpy as np
 Example usage of an open-loop MPC
 """
 
-N = 10  # Prediction horizon
+N_open = 20  # Prediction horizon
 
-# Specify the system
-A = np.array([[1, 0.15], [0.1, 1]])
-B = np.array([[0.1], [1.1]])
+# Specify the estimated system -- We use marginal stable
+A = np.array([[1, 0.7], [0.12, 0.4]])
+B = np.array([[1], [1.2]])
 
 # Get the dimension
 n_x = A.shape[0]
@@ -24,17 +24,17 @@ Q = np.eye(n_x)
 R = np.eye(n_u)
 
 # Specify the initial condition
-x0 = np.array([0.8, 0.6])
+x0 = np.array([0.1125, 0.19])
 
 # Specify the input constraints
-F_u = np.vstack((np.eye(n_u), -np.eye(n_u)))
+F_u = np.vstack((10 * np.eye(n_u), -10 * np.eye(n_u)))
 
 # Initialize the MPC controller
-mpc_controller = LQ_MPC_Controller(N, A, B, Q, R, Q, F_u)
+mpc_controller = LQ_MPC_Controller(N_open, A, B, Q, R, Q, F_u)
 
 # Set the tracking trajectory to be 0 identically, the task is simply a stabilization problem
-x_ref = np.zeros((n_x, N))  # Example reference trajectory
-u_ref = np.zeros((n_u, N))  # Example reference control inputs
+x_ref = np.zeros((n_x, N_open))  # Example reference trajectory
+u_ref = np.zeros((n_u, N_open))  # Example reference control inputs
 
 # Solve the MPC controller
 MPC_info = mpc_controller.solve(x0, x_ref, u_ref)
@@ -48,14 +48,15 @@ print(f"First applied input: {MPC_info['u_0']}")
 Example usage of an closed-loop MPC
 """
 # Simulation length
-T = 90
+T = 20
+N_closed = 6
 
 # Specify the true system
-A_true = np.array([[1, 0.05], [0.0, 1]])
-B_true = np.array([[0], [1.1]])
+A_true = np.array([[1.01, 0.7], [0.12, 0.41]])
+B_true = np.array([[1], [1.21]])
 
 # Define the MPC simulator using the nominal model
-mpc_simulator = LQ_MPC_Simulator(T, N, A, B, Q, R, Q, F_u)
+mpc_simulator = LQ_MPC_Simulator(T, N_closed, A, B, Q, R, Q, F_u)
 
 # Simulate the trajectory using the true model
 MPC_traj_info = mpc_simulator.simulate(x0, A_true, B_true, x_ref, u_ref)
