@@ -62,16 +62,9 @@ u_ref = np.zeros((1, N_horizon_test))  # Example reference control inputs
 # here P is set as Q since we do not have a terminal cost
 MPC_test = LQ_MPC_Controller(N_horizon_test, A, B, Q, R, Q, F_u)
 
-# Initialize a variable to store the open-loop cost
-energy_vec = np.zeros(x0_vec.shape[1])
+my_behavior = LQ_RDP_Behavior(A, B, Q, R, F_u, -K_lqr, 6, 10, -6, -2)
 
-# loop computation
-for i in range(x0_vec.shape[1]):
-    info_MPC_test = MPC_test.solve(x0_vec[:, i], x_ref, u_ref)
-    energy_vec[i] = info_MPC_test['V_N']
-
-# taking the maximum to get an estimate of the energy bar
-M_V_test = np.max(energy_vec)
+M_V_test = my_behavior.OL_energy_bound(N_horizon_test, 8, ratio_x0, x_ref, u_ref)
 
 info_lqr_ex = ex_stability_lq(A, B, Q, R, -K_lqr)
 
@@ -115,6 +108,5 @@ info_bound = my_calculator.energy_bound(N_horizon_test, e_A, e_B, 1 * x0_vec[:, 
 print(info_decrease)
 print(info_bound)
 
-my_behavior = LQ_RDP_Behavior(A, B, Q, R, F_u, N_horizon_test, 10, -6, -2)
 info_xi = my_behavior.data_generation_xi(-K_lqr, M_V_test, N_horizon_test, 0.01)
 info_alpha_beta = my_behavior.data_generation_alpha_beta(x0_vec[:, 1], p, N_horizon_test, 0.01)

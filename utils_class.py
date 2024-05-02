@@ -434,13 +434,12 @@ class LQ_RDP_Behavior:
         self.horizon = np.arange(N_min, N_max + 1)
         self.error_vec = np.array([10 ** i for i in range(e_pow_min, e_pow_max + 1)])
 
-    def OL_energy_bound(self, N, N_points, ext_radius_max, K, x_ref, u_ref):
+    def OL_energy_bound(self, N, N_points, ext_radius_max, x_ref, u_ref):
         """
         Calculates the maximum energy M_V for performance computation
         :param N: prediction horizon
         :param N_points: The number of data points considered on the circle
         :param ext_radius_max: the ratio of radius extension
-        :param K: The chosen gain within the local region
         :param x_ref: the state reference
         :param u_ref: the input reference
         :return: the maximum open-loop energy bound
@@ -519,7 +518,7 @@ class LQ_RDP_Behavior:
 
         return {'error': alpha_error, 'horizon': alpha_horizon}, {'error': beta_error, 'horizon': beta_horizon}
 
-    def data_generation_circle(self, N, sim_info, sys_true, err_nominal, info_ref, M_V, p, N_points, ratio_ext_radius):
+    def data_generation_plane(self, N, sim_info, sys_true, err_nominal, info_ref, M_V, p, N_points, ratio_ext_radius):
         """
         This function generates the data for J_MPC, J_MPC_bound, and V_OPC value for each of the points on
         the circle
@@ -534,9 +533,6 @@ class LQ_RDP_Behavior:
         :param ratio_ext_radius: the ratio of the extra radius extension
         :return: A dictionary with all the data points and their corresponding cost values
         """
-        # Computing the circle
-        X_points = circle_generator(N_points, ratio_ext_radius, self.epsilon, self.Q)
-
         # get the alpha and beta value
         e_A = err_nominal['e_A']
         e_B = err_nominal['e_B']
@@ -564,31 +560,48 @@ class LQ_RDP_Behavior:
         cl_mpc = LQ_MPC_Simulator(T_mpc, N, self.A, self.B, self.Q, self.R, self.Q, self.F_u)
 
         # ----------------- Computation of the cost values -----------------
-        my_alpha = np.zeros(N_points)  # initialization alpha
-        my_beta = np.zeros(N_points)  # initialization beta
-        my_J_MPC = np.zeros(N_points)  # initialization J_MPC
-        my_J_MPC_bound = np.zeros(N_points)  # initialization J_MPC_bound
-        my_V_OPC = np.zeros(N_points)  # initialization V_OPC
+        X_1 = []
+        X_2 = []
+        J_MPC_true = []
+        J_MPC_bound = []
+        V_OPC = []
+        temp_alpha = np.zeros(N_points)  # initialization alpha
+        temp_beta = np.zeros(N_points)  # initialization beta
+        temp_J_MPC_true = np.zeros(N_points)  # initialization J_MPC
+        temp_J_MPC_bound = np.zeros(N_points)  # initialization J_MPC_bound
+        temp_V_OPC = np.zeros(N_points)  # initialization V_OPC
 
-        # The for loop (looping each of the points)
-        for i in range(N_points):
-            # Computing alpha and beta for each of the points on the circle
-            temp_info_energy_bound = self.calculator.energy_bound(N, e_A, e_B, X_points[:, i], p)
-            my_alpha[i] = temp_info_energy_bound['alpha']
-            my_beta[i] = temp_info_energy_bound['beta']
+        for j in range(len(ratio_ext_radius)):
+            # Computing the circle
+            X_points = circle_generator(N_points, ratio_ext_radius[j], self.epsilon, self.Q)
 
-            # Computing the open-loop MPC cost for each of the points, knowing the true system
-            temp_info_ol_mpc = ol_mpc.solve(X_points[:, i], x_ref, u_ref)
-            my_V_OPC[i] = temp_info_ol_mpc['V_N']
+            # The for loop (looping each of the points)
+            for i in range(N_points):
+                # Computing alpha and beta for each of the points on the circle
+                temp_info_energy_bound = self.calculator.energy_bound(N, e_A, e_B, X_points[:, i], p)
+                temp_alpha[i] = temp_info_energy_bound['alpha']
+                temp_beta[i] = temp_info_energy_bound['beta']
 
-            # Computing the cost bound for each of the points
-            my_J_MPC_bound = decreasing_factor * (my_alpha[i] * my_V_OPC[i] + my_beta[i])
+                # Computing the open-loop MPC cost for each of the points, knowing the true system
+                temp_info_ol_mpc = ol_mpc.solve(X_points[:, i], x_ref, u_ref)
+                temp_V_OPC[i] = temp_info_ol_mpc['V_N']
 
-            # Computing the closed-loop MPC cost for each of the points, knowing the estimated system
-            temp_info_cl_mpc = cl_mpc.simulate(X_points[:, i], A_true, B_true, x_ref, u_ref)
-            my_J_MPC[i] = temp_info_cl_mpc['J_T']
+                # Computing the cost bound for each of the points
+                temp_J_MPC_bound[i] = decreasing_factor * (temp_alpha[i] * temp_V_OPC[i] + temp_beta[i])
 
-        return {'X': X_points, 'J_MPC': my_J_MPC, 'J_MPC_bound': my_J_MPC_bound, 'V_OPC': my_V_OPC}
+                # Computing the closed-loop MPC cost for each of the points, knowing the estimated system
+                temp_info_cl_mpc = cl_mpc.simulate(X_points[:, i], A_true, B_true, x_ref, u_ref)
+                temp_J_MPC_true[i] = temp_info_cl_mpc['J_T']
+
+            X_1 = np.append(X_1, X_points[1, :])
+            X_2 = np.append(X_2, X_points[2, :])
+            J_MPC_true = np.append(J_MPC_true, temp_J_MPC_true)
+            J_MPC_bound = np.append(J_MPC_true, temp_J_MPC_bound)
+            V_OPC = np.append(J_MPC_true, temp_V_OPC)
+
+        X = np.vstack((X_1, X_2))
+
+        return {'X': X, 'J_MPC_true': J_MPC_true, 'J_MPC_bound': J_MPC_bound, 'V_OPC': V_OPC}
 
 
 class Plotter_PF_LQMPC:
@@ -596,29 +609,26 @@ class Plotter_PF_LQMPC:
     This class is used to plot the performance surface in 3D for different initial points.
     """
 
-    def __init__(self, X, J_MPC_true, J_MPC_bound, V_OPC, xi_data, alpha_data, beta_data,
+    def __init__(self, data_surface, data_xi, data_alpha, data_beta,
                  N_min, N_max, e_pow_min, e_pow_max):
         """
         This is the initialization of the class
-        :param X: Meshgrid of the initial state
-        :param J_MPC_true: The true MPC cost computed numerically
-        :param J_MPC_bound: The performance bound computed analytically
-        :param V_OPC: The cost of the infinite-horizon optimal controller
-        :param xi_data: The xi data with varying error and horizon
-        :param alpha_data: The alpha data with varying error and horizon
-        :param beta_data: The beta data with varying error and horizon
+        :param data_surface: A dictionary that contains the data for plotting the surface
+        :param data_xi: The xi data with varying error and horizon
+        :param data_alpha: The alpha data with varying error and horizon
+        :param data_beta: The beta data with varying error and horizon
         :param N_min: minimum used horizon
         :param N_max: maximum used horizon
         :param e_pow_min: minimum used power of the error
         :param e_pow_max: maximum used power of the error
         """
-        self.X = X
-        self.J_MPC_true = J_MPC_true
-        self.J_MPC_bound = J_MPC_bound
-        self.V_OPC = V_OPC
-        self.xi_data = xi_data
-        self.alpha_data = alpha_data
-        self.beta_data = beta_data
+        self.X = data_surface['X']
+        self.J_MPC_true = data_surface['J_MPC_true']
+        self.J_MPC_bound = data_surface['J_MPC_bound']
+        self.V_OPC = data_surface['V_OPC']
+        self.data_xi = data_xi
+        self.data_alpha = data_alpha
+        self.data_beta = data_beta
         self.horizon = np.arange(N_min, N_max + 1)
         self.error = np.array([10 ** i for i in range(e_pow_min, e_pow_max + 1)])
 
@@ -676,7 +686,7 @@ class Plotter_PF_LQMPC:
         fig, axs = plt.subplots(3, 2, figsize=(size[0] * 2, size[1] * 3))
         # ----------------- Plots about alpha -------------------
         # alpha changes w.r.t. error
-        axs[0, 0].plot(self.error, self.alpha_data['error'],
+        axs[0, 0].plot(self.error, self.data_alpha['error'],
                        label=r'$\alpha_N$')
         axs[0, 0].set_title(r'$N = {}$'.format(horizon_nominal),
                             fontdict={'family': font_type, 'size': font_size["label"],
@@ -689,7 +699,7 @@ class Plotter_PF_LQMPC:
                          prop={'family': font_type, 'size': font_size["legend"]})
         axs[0, 0].set_xscale('log')
         # alpha changes w.r.t. horizon
-        axs[0, 1].plot(self.horizon, self.alpha_data['horizon'],
+        axs[0, 1].plot(self.horizon, self.data_alpha['horizon'],
                        label=r'$\alpha_N$')
         axs[0, 1].set_title(r'$\delta_A = \delta_B = {}$'.format(error_nominal),
                             fontdict={'family': font_type, 'size': font_size["label"],
@@ -704,7 +714,7 @@ class Plotter_PF_LQMPC:
 
         # ----------------- Plots about beta -------------------
         # beta changes w.r.t. error
-        axs[1, 0].plot(self.error, self.beta_data['error'],
+        axs[1, 0].plot(self.error, self.data_beta['error'],
                        label=r'\beta_N')
         axs[1, 0].set_title(r'$N = {}$'.format(horizon_nominal),
                             fontdict={'family': font_type, 'size': font_size["label"],
@@ -717,7 +727,7 @@ class Plotter_PF_LQMPC:
                          prop={'family': font_type, 'size': font_size["legend"]})
         axs[1, 0].set_xscale('log')
         # beta changes w.r.t. horizon
-        axs[1, 1].plot(self.horizon, self.beta_data['horizon'],
+        axs[1, 1].plot(self.horizon, self.data_beta['horizon'],
                        label=r'$\beta_N$')
         axs[1, 1].set_title(r'$\delta_A = \delta_B = {}$'.format(error_nominal),
                             fontdict={'family': font_type, 'size': font_size["label"],
@@ -732,7 +742,7 @@ class Plotter_PF_LQMPC:
 
         # ----------------- Plots about xi -------------------
         # xi changes w.r.t. error
-        axs[2, 0].plot(self.error, self.xi_data['error'],
+        axs[2, 0].plot(self.error, self.data_xi['error'],
                        label=r'\xi_N')
         axs[2, 0].set_title(r'$N = {}$'.format(horizon_nominal),
                             fontdict={'family': font_type, 'size': font_size["label"],
@@ -745,7 +755,7 @@ class Plotter_PF_LQMPC:
                          prop={'family': font_type, 'size': font_size["legend"]})
         axs[2, 0].set_xscale('log')
         # xi changes w.r.t. horizon
-        axs[2, 1].plot(self.horizon, self.xi_data[2, :],
+        axs[2, 1].plot(self.horizon, self.data_xi[2, :],
                        label=r'$\xi_N$')
         axs[2, 1].set_title(r'$\delta_A = \delta_B = {}$'.format(error_nominal),
                             fontdict={'family': font_type, 'size': font_size["label"],
