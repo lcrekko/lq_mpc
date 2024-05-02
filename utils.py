@@ -37,6 +37,7 @@ import numpy as np
 # import cvxpy as cp
 import gurobipy as gp
 from gurobipy import GRB
+from scipy.linalg import cho_factor
 import math
 
 '''
@@ -631,14 +632,12 @@ def bar_d_u_solve(F_u):
     # Set objective
     model.setObjective(gp.quicksum((u_1[i] - u_2[i]) * (u_1[i] - u_2[i]) for i in range(dim_u)), GRB.MAXIMIZE)
 
-    for i in range(F_u.shape[0]):
+    for i in range(n_constr):
         model.addConstr(gp.quicksum(F_u[i, j] * u_1[j] for j in range(dim_u)) <= 1)
         model.addConstr(gp.quicksum(F_u[i, j] * u_2[j] for j in range(dim_u)) <= 1)
 
     # Optimize
     model.optimize()
-
-
 
 
 """
@@ -669,6 +668,30 @@ def rot_action_2D(x, theta):
         my_out[:, i:i + 1] = rot_2D(theta[i]) @ x
 
     return my_out
+
+
+def circle_generator(N_points, ratio_ext_radius, my_base, Q):
+    """
+    This function generates a set of states on a circle
+    :param N_points: The number of data points on a circle
+    :param ratio_ext_radius: The extending ratio of the radius
+    :param my_base: x^T * Q * x <= my_base, which defines the size of the local region
+    :param Q: The matrix Q of the stage cost
+    :return: A 2-by-N_points numpy array
+    """
+    # Cholesky decomposition of the matrix Q
+    root_Q, _ = cho_factor(Q)
+
+    # Compute the base state (a 2D vector)
+    x0_base = np.array([[ratio_ext_radius * math.sqrt(my_base)], [0.0]])
+
+    # Specify the rotation angles for rotating the initial state
+    my_theta = np.linspace(0, 2 * math.pi, N_points)
+
+    # Computing the set of initial vectors that will be used
+    x0_vec = np.linalg.inv(root_Q) @ rot_action_2D(x0_base, my_theta)
+
+    return x0_vec
 
 
 """

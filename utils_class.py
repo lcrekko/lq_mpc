@@ -2,8 +2,10 @@ import math
 import cvxpy as cp
 import numpy as np
 import matplotlib.pyplot as plt
-from utils import (bar_u_solve, bar_d_u_solve, fc_ec_E, local_radius, ex_stability_lq, ex_stability_bounds,
-                   fc_omega_eta, fc_ec_h, fc_omega_eta_extension, gradient_color)
+from utils import (bar_u_solve, bar_d_u_solve,
+                   local_radius, ex_stability_lq, ex_stability_bounds,
+                   fc_omega_eta, fc_ec_h, fc_ec_E, fc_omega_eta_extension,
+                   circle_generator, gradient_color)
 
 plt.rcParams.update({
     "text.usetex": True,
@@ -407,7 +409,7 @@ class LQ_RDP_Behavior:
     This class is used to compute the coefficient of RDP performance with varying horizon and modeling error
     """
 
-    def __init__(self, A, B, Q, R, F_u, N_min, N_max, e_pow_min, e_pow_max):
+    def __init__(self, A, B, Q, R, F_u, K, N_min, N_max, e_pow_min, e_pow_max):
         """
         This is the initialization of the class
         :param A: matrix A, estimated
@@ -415,14 +417,52 @@ class LQ_RDP_Behavior:
         :param Q: matrix Q
         :param R: matrix R
         :param F_u: input constraints
+        :param K: the used feedback gain
         :param N_min: minimum used horizon
         :param N_max: maximum used horizon
         :param e_pow_min: minimum used power of the error
         :param e_pow_max: maximum used power of the error
         """
+        self.A = A
+        self.B = B
+        self.Q = Q
+        self.R = R
+        self.F_u = F_u
+        self.K = K
+        self.epsilon = local_radius(F_u, K, Q)
         self.calculator = LQ_RDP_Calculator(A, B, Q, R, F_u)
         self.horizon = np.arange(N_min, N_max + 1)
         self.error_vec = np.array([10 ** i for i in range(e_pow_min, e_pow_max + 1)])
+
+    def OL_energy_bound(self, N, N_points, ext_radius_max, K, x_ref, u_ref):
+        """
+        Calculates the maximum energy M_V for performance computation
+        :param N: prediction horizon
+        :param N_points: The number of data points considered on the circle
+        :param ext_radius_max: the ratio of radius extension
+        :param K: The chosen gain within the local region
+        :param x_ref: the state reference
+        :param u_ref: the input reference
+        :return: the maximum open-loop energy bound
+        """
+        # get the circle
+        x0_vec = circle_generator(N_points, ext_radius_max, self.epsilon, self.Q)
+
+        # Specify the MPC
+        my_MPC = LQ_MPC_Controller(N, self.A, self.B, self.Q, self.R, self.Q, self.F_u)
+
+        # Initialize a variable to store the open-loop cost
+        energy_vec = np.zeros(x0_vec.shape[1])
+
+        # loop computation
+        for i in range(x0_vec.shape[1]):
+            info_MPC_test = my_MPC.solve(x0_vec[:, i], x_ref, u_ref)
+            energy_vec[i] = info_MPC_test['V_N']
+
+        # taking the maximum to get an estimate of the energy bar
+        M_V = np.max(energy_vec)
+
+        return M_V
 
     def data_generation_xi(self, K, M_V, N_nominal, err_nominal):
         """
@@ -430,7 +470,7 @@ class LQ_RDP_Behavior:
         :param K: The terminal control law
         :param M_V: The energy bound
         :param N_nominal: The nominal prediction horizon, usually choose the minium one
-        :param err_nominal: The nominal permitted error
+        :param err_nominal: A dictionary that contains the nominal permitted error
         :return: a dictionary with xi data
         """
         xi_error = np.zeros(len(self.error_vec))
@@ -438,9 +478,13 @@ class LQ_RDP_Behavior:
             xi_error[i] = self.calculator.energy_decreasing(N_nominal, self.error_vec[i], self.error_vec[i], K, M_V)[
                 'xi']
 
+        # get the alpha and beta value
+        my_e_A = err_nominal['e_A']
+        my_e_B = err_nominal['e_B']
+
         xi_horizon = np.zeros(len(self.horizon))
         for i in range(len(self.horizon)):
-            xi_horizon[i] = self.calculator.energy_decreasing(self.horizon[i], err_nominal, err_nominal, K, M_V)['xi']
+            xi_horizon[i] = self.calculator.energy_decreasing(self.horizon[i], my_e_A, my_e_B, K, M_V)['xi']
 
         return {'error': xi_error, 'horizon': xi_horizon}
 
@@ -461,15 +505,90 @@ class LQ_RDP_Behavior:
             beta_error[i] = self.calculator.energy_decreasing(N_nominal, self.error_vec[i],
                                                               self.error_vec[i], x, p)['beta']
 
+        # get the alpha and beta value
+        my_e_A = err_nominal['e_A']
+        my_e_B = err_nominal['e_B']
+
         alpha_horizon = np.zeros(len(self.horizon))
         beta_horizon = np.zeros(len(self.horizon))
         for i in range(len(self.error_vec)):
-            alpha_horizon[i] = self.calculator.energy_bound(self.horizon[i], err_nominal,
-                                                            err_nominal, x, p)['alpha']
-            beta_horizon[i] = self.calculator.energy_bound(self.horizon[i], err_nominal,
-                                                           err_nominal, x, p)['beta']
+            alpha_horizon[i] = self.calculator.energy_bound(self.horizon[i], my_e_A,
+                                                            my_e_B, x, p)['alpha']
+            beta_horizon[i] = self.calculator.energy_bound(self.horizon[i], my_e_A,
+                                                           my_e_B, x, p)['beta']
 
         return {'error': alpha_error, 'horizon': alpha_horizon}, {'error': beta_error, 'horizon': beta_horizon}
+
+    def data_generation_circle(self, N, sim_info, sys_true, err_nominal, info_ref, M_V, p, N_points, ratio_ext_radius):
+        """
+        This function generates the data for J_MPC, J_MPC_bound, and V_OPC value for each of the points on
+        the circle
+        :param N: Prediction horizon
+        :param sim_info: A dictionary that contains the open-loop simulation horizon and closed-loop simulation horizon
+        :param sys_true: A dictionary that contains the information of the true system
+        :param err_nominal: A dictionary that contains the nominal error of the model
+        :param info_ref: A dictionary that contains the reference of the state and input
+        :param M_V: open-loop energy bound
+        :param p: the scalars p
+        :param N_points: The number of data points on the circle
+        :param ratio_ext_radius: the ratio of the extra radius extension
+        :return: A dictionary with all the data points and their corresponding cost values
+        """
+        # Computing the circle
+        X_points = circle_generator(N_points, ratio_ext_radius, self.epsilon, self.Q)
+
+        # get the alpha and beta value
+        e_A = err_nominal['e_A']
+        e_B = err_nominal['e_B']
+
+        # get the true system
+        A_true = sys_true['A_true']
+        B_true = sys_true['B_true']
+
+        # get the simulation info
+        T_mpc = sim_info['T_mpc']
+        N_opc = sim_info['N_opc']
+
+        # get the reference
+        x_ref = info_ref['x_ref']
+        u_ref = info_ref['u_ref']
+
+        # Computing the xi and eta from the energy-decreasing module
+        info_decrease = self.calculator.energy_decreasing(N, e_A, e_B, self.K, M_V)
+        decreasing_factor = 1 / (1 - info_decrease['xi'] - info_decrease['eta'])
+
+        # define the open-loop MPC
+        ol_mpc = LQ_MPC_Controller(N_opc, A_true, B_true, self.Q, self.R, self.Q, self.F_u)
+
+        # define the closed-loop MPC
+        cl_mpc = LQ_MPC_Simulator(T_mpc, N, self.A, self.B, self.Q, self.R, self.Q, self.F_u)
+
+        # ----------------- Computation of the cost values -----------------
+        my_alpha = np.zeros(N_points)  # initialization alpha
+        my_beta = np.zeros(N_points)  # initialization beta
+        my_J_MPC = np.zeros(N_points)  # initialization J_MPC
+        my_J_MPC_bound = np.zeros(N_points)  # initialization J_MPC_bound
+        my_V_OPC = np.zeros(N_points)  # initialization V_OPC
+
+        # The for loop (looping each of the points)
+        for i in range(N_points):
+            # Computing alpha and beta for each of the points on the circle
+            temp_info_energy_bound = self.calculator.energy_bound(N, e_A, e_B, X_points[:, i], p)
+            my_alpha[i] = temp_info_energy_bound['alpha']
+            my_beta[i] = temp_info_energy_bound['beta']
+
+            # Computing the open-loop MPC cost for each of the points, knowing the true system
+            temp_info_ol_mpc = ol_mpc.solve(X_points[:, i], x_ref, u_ref)
+            my_V_OPC[i] = temp_info_ol_mpc['V_N']
+
+            # Computing the cost bound for each of the points
+            my_J_MPC_bound = decreasing_factor * (my_alpha[i] * my_V_OPC[i] + my_beta[i])
+
+            # Computing the closed-loop MPC cost for each of the points, knowing the estimated system
+            temp_info_cl_mpc = cl_mpc.simulate(X_points[:, i], A_true, B_true, x_ref, u_ref)
+            my_J_MPC[i] = temp_info_cl_mpc['J_T']
+
+        return {'X': X_points, 'J_MPC': my_J_MPC, 'J_MPC_bound': my_J_MPC_bound, 'V_OPC': my_V_OPC}
 
 
 class Plotter_PF_LQMPC:
