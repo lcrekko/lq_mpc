@@ -4,15 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="63ea9d13-1b9c-4a47-973b-39700708c2ac" name="Changes" comment="begin changes">
-      <change afterPath="$PROJECT_DIR$/working_example.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/basic_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/plotter_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/basic_test_2.py" beforeDir="false" afterPath="$PROJECT_DIR$/computation_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils_class.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils_class.py" afterDir="false" />
-    </list>
+    <list default="true" id="63ea9d13-1b9c-4a47-973b-39700708c2ac" name="Changes" comment="begin changes" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -102,7 +94,7 @@
       <workItem from="1714499431587" duration="13991000" />
       <workItem from="1714562202180" duration="19384000" />
       <workItem from="1714595056390" duration="2228000" />
-      <workItem from="1714659343596" duration="8130000" />
+      <workItem from="1714659343596" duration="8396000" />
     </task>
     <task id="LOCAL-00001" summary="begin changes">
       <option name="closed" value="true" />
@@ -160,7 +152,15 @@
       <option name="project" value="LOCAL" />
       <updated>1714606996955</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="begin changes">
+      <option name="closed" value="true" />
+      <created>1714670434723</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1714670434723</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
