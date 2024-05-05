@@ -4,15 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="63ea9d13-1b9c-4a47-973b-39700708c2ac" name="Changes" comment="K">
-      <change afterPath="$PROJECT_DIR$/behavior_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/computation_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/computation_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/plotter_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/plotter_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils_class.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils_class.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/working_example.py" beforeDir="false" afterPath="$PROJECT_DIR$/working_example.py" afterDir="false" />
-    </list>
+    <list default="true" id="63ea9d13-1b9c-4a47-973b-39700708c2ac" name="Changes" comment="K" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -110,7 +102,7 @@
       <workItem from="1714595056390" duration="2228000" />
       <workItem from="1714659343596" duration="8396000" />
       <workItem from="1714683107319" duration="5003000" />
-      <workItem from="1714911486218" duration="25902000" />
+      <workItem from="1714911486218" duration="26198000" />
     </task>
     <task id="LOCAL-00001" summary="begin changes">
       <option name="closed" value="true" />
@@ -192,7 +184,15 @@
       <option name="project" value="LOCAL" />
       <updated>1714688122904</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="K">
+      <option name="closed" value="true" />
+      <created>1714948459331</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1714948459331</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -212,7 +212,8 @@
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
     <MESSAGE value="begin changes" />
-    <option name="LAST_COMMIT_MESSAGE" value="begin changes" />
+    <MESSAGE value="K" />
+    <option name="LAST_COMMIT_MESSAGE" value="K" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
