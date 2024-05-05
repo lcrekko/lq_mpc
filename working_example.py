@@ -1,6 +1,11 @@
+"""
+This is the script for testing the LQ_MPC_Calculator and also for determining a good prediction horizon
+as well as the maximum level of permitted error
+"""
+
 import numpy as np
 import control as ct
-from utils import local_radius, rot_action_2D, ex_stability_lq, ex_stability_bounds, fc_omega_eta
+from utils import local_radius, rot_action_2D, ex_stability_lq, ex_stability_bounds, fc_omega_eta, circle_generator
 from scipy.linalg import cho_factor
 # import numpy.linalg as la
 import math
@@ -19,17 +24,14 @@ B = np.array([[1], [1.2]])
 Q = 2 * np.eye(2)
 R = np.eye(1)
 
-# decomposing the matrix Q
-root_Q, lower_Q = cho_factor(Q)
-
 # Specify the input constraints -- We simply confine -1 <= u <= 1
 F_u = np.array([[10], [-10]])
 
 # Specify the number of the initial states that will be simulated
-N_init = 4
+N_init = 8
 
 # Specify the rotation angles for rotating the initial state
-my_theta = np.linspace(0, math.pi, N_init)
+# my_theta = np.linspace(0, math.pi, N_init)
 
 # ---------------Prerequisite-----------------
 
@@ -42,11 +44,8 @@ epsilon_lqr = local_radius(F_u, -K_lqr, Q)
 # Specifying the extension factor -- Remark: this factor must be greater than 1
 ratio_x0 = 1.5
 
-# Computing the base initial vector
-x0_base = np.linalg.inv(root_Q) @ np.array([[ratio_x0 * math.sqrt(epsilon_lqr)], [0.0]])
-
 # Computing the set of initial vectors that will be used
-x0_vec = rot_action_2D(x0_base, my_theta)
+x0_vec = circle_generator(N_init, ratio_x0, epsilon_lqr, Q)
 
 print(x0_vec)
 
@@ -108,5 +107,5 @@ info_bound = my_calculator.energy_bound(N_horizon_test, e_A, e_B, 1 * x0_vec[:, 
 print(info_decrease)
 print(info_bound)
 
-info_xi = my_behavior.data_generation_xi(-K_lqr, M_V_test, N_horizon_test, 0.01)
-info_alpha_beta = my_behavior.data_generation_alpha_beta(x0_vec[:, 1], p, N_horizon_test, 0.01)
+# info_xi = my_behavior.data_generation_xi(-K_lqr, M_V_test, N_horizon_test, 0.01)
+# info_alpha_beta = my_behavior.data_generation_alpha_beta(x0_vec[:, 1], p, N_horizon_test, 0.01)

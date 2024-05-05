@@ -14,6 +14,8 @@ X, Y = np.meshgrid(X, Y)
 Z = X * Y
 R = X ** 2 + Y ** 2
 
+print(Z)
+
 # Plot
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')

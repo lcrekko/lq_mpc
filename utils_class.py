@@ -499,10 +499,10 @@ class LQ_RDP_Behavior:
         alpha_error = np.zeros(len(self.error_vec))
         beta_error = np.zeros(len(self.error_vec))
         for i in range(len(self.error_vec)):
-            alpha_error[i] = self.calculator.energy_decreasing(N_nominal, self.error_vec[i],
-                                                               self.error_vec[i], x, p)['alpha']
-            beta_error[i] = self.calculator.energy_decreasing(N_nominal, self.error_vec[i],
-                                                              self.error_vec[i], x, p)['beta']
+            alpha_error[i] = self.calculator.energy_bound(N_nominal, self.error_vec[i],
+                                                          self.error_vec[i], x, p)['alpha']
+            beta_error[i] = self.calculator.energy_bound(N_nominal, self.error_vec[i],
+                                                         self.error_vec[i], x, p)['beta']
 
         # get the alpha and beta value
         my_e_A = err_nominal['e_A']
@@ -548,6 +548,8 @@ class LQ_RDP_Behavior:
         # get the reference
         x_ref = info_ref['x_ref']
         u_ref = info_ref['u_ref']
+        x_ref_long = info_ref['x_ref_long']
+        u_ref_long = info_ref['u_ref_long']
 
         # Computing the xi and eta from the energy-decreasing module
         info_decrease = self.calculator.energy_decreasing(N, e_A, e_B, self.K, M_V)
@@ -583,7 +585,7 @@ class LQ_RDP_Behavior:
                 temp_beta[i] = temp_info_energy_bound['beta']
 
                 # Computing the open-loop MPC cost for each of the points, knowing the true system
-                temp_info_ol_mpc = ol_mpc.solve(X_points[:, i], x_ref, u_ref)
+                temp_info_ol_mpc = ol_mpc.solve(X_points[:, i], x_ref_long, u_ref_long)
                 temp_V_OPC[i] = temp_info_ol_mpc['V_N']
 
                 # Computing the cost bound for each of the points
@@ -593,8 +595,8 @@ class LQ_RDP_Behavior:
                 temp_info_cl_mpc = cl_mpc.simulate(X_points[:, i], A_true, B_true, x_ref, u_ref)
                 temp_J_MPC_true[i] = temp_info_cl_mpc['J_T']
 
-            X_1 = np.append(X_1, X_points[1, :])
-            X_2 = np.append(X_2, X_points[2, :])
+            X_1 = np.append(X_1, X_points[0, :])
+            X_2 = np.append(X_2, X_points[1, :])
             J_MPC_true = np.append(J_MPC_true, temp_J_MPC_true)
             J_MPC_bound = np.append(J_MPC_true, temp_J_MPC_bound)
             V_OPC = np.append(J_MPC_true, temp_V_OPC)
@@ -603,6 +605,78 @@ class LQ_RDP_Behavior:
 
         return {'X': X, 'J_MPC_true': J_MPC_true, 'J_MPC_bound': J_MPC_bound, 'V_OPC': V_OPC}
 
+    def data_generation_mesh(self, N, sim_info, sys_true, err_nominal, info_ref, M_V, p, quadrant_range):
+        """
+        Generates data points that form a mesh grid, which is more convenient for plotting the surface
+        :param N: Prediction horizon
+        :param sim_info: Simulation information
+        :param sys_true: System information (true system)
+        :param err_nominal: nominal error of the model
+        :param info_ref: Reference of the state and input
+        :param M_V: Energy bound
+        :param p: pair of scalars p
+        :param quadrant_range: the range in the first quadrant
+        :return: A dictionary with all the data points and their corresponding cost values
+        """
+        # get the alpha and beta value
+        e_A = err_nominal['e_A']
+        e_B = err_nominal['e_B']
+
+        # get the true system
+        A_true = sys_true['A_true']
+        B_true = sys_true['B_true']
+
+        # get the simulation info
+        T_mpc = sim_info['T_mpc']
+        N_opc = sim_info['N_opc']
+
+        # get the reference
+        x_ref = info_ref['x_ref']
+        u_ref = info_ref['u_ref']
+        x_ref_long = info_ref['x_ref_long']
+        u_ref_long = info_ref['u_ref_long']
+
+        # Computing the xi and eta from the energy-decreasing module
+        info_decrease = self.calculator.energy_decreasing(N, e_A, e_B, self.K, M_V)
+        decreasing_factor = 1 / (1 - info_decrease['xi'] - info_decrease['eta'])
+
+        # define the open-loop MPC
+        ol_mpc = LQ_MPC_Controller(N_opc, A_true, B_true, self.Q, self.R, self.Q, self.F_u)
+
+        # define the closed-loop MPC
+        cl_mpc = LQ_MPC_Simulator(T_mpc, N, self.A, self.B, self.Q, self.R, self.Q, self.F_u)
+
+        # Create the meth
+        X = np.hstack((-quadrant_range['x'], quadrant_range['x']))
+        Y = np.hstack((-quadrant_range['y'], quadrant_range['y']))
+        coord_X, coord_Y = np.meshgrid(X, Y)
+
+        # ----------------- Computation of the cost values -----------------
+        J_MPC_true = np.zeros([2 * len(quadrant_range['x']), 2 * len(quadrant_range['y'])])
+        J_MPC_bound = np.zeros([2 * len(quadrant_range['x']), 2 * len(quadrant_range['y'])])
+        V_OPC = np.zeros([2 * len(quadrant_range['x']), 2 * len(quadrant_range['y'])])
+
+        for i in range(2 * len(quadrant_range['x'])):
+            for j in range(2 * len(quadrant_range['y'])):
+                # Computing alpha and beta for each of the points on the circle
+                temp_point = np.array([X[i], Y[j]])
+                temp_info_energy_bound = self.calculator.energy_bound(N, e_A, e_B, temp_point, p)
+                temp_alpha = temp_info_energy_bound['alpha']
+                temp_beta = temp_info_energy_bound['beta']
+
+                # Computing the open-loop MPC cost for each of the points, knowing the true system
+                temp_info_ol_mpc = ol_mpc.solve(temp_point, x_ref_long, u_ref_long)
+                V_OPC[i][j] = temp_info_ol_mpc['V_N']
+
+                # Computing the cost bound for each of the points
+                J_MPC_bound[i][j] = decreasing_factor * (temp_alpha[i] * V_OPC[i] + temp_beta[i])
+
+                # Computing the closed-loop MPC cost for each of the points, knowing the estimated system
+                temp_info_cl_mpc = cl_mpc.simulate(temp_point, A_true, B_true, x_ref, u_ref)
+                J_MPC_true[i][j] = temp_info_cl_mpc['J_T']
+
+        return {'X': coord_X, 'Y': coord_Y, 'J_MPC_true': J_MPC_true, 'J_MPC_bound': J_MPC_bound, 'V_OPC': V_OPC}
+
 
 class Plotter_PF_LQMPC:
     """
@@ -610,7 +684,7 @@ class Plotter_PF_LQMPC:
     """
 
     def __init__(self, data_surface, data_xi, data_alpha, data_beta,
-                 N_min, N_max, e_pow_min, e_pow_max):
+                 N_min, N_max, e_power_min, e_power_max):
         """
         This is the initialization of the class
         :param data_surface: A dictionary that contains the data for plotting the surface
@@ -619,10 +693,11 @@ class Plotter_PF_LQMPC:
         :param data_beta: The beta data with varying error and horizon
         :param N_min: minimum used horizon
         :param N_max: maximum used horizon
-        :param e_pow_min: minimum used power of the error
-        :param e_pow_max: maximum used power of the error
+        :param e_power_min: minimum used power of the error
+        :param e_power_max: maximum used power of the error
         """
         self.X = data_surface['X']
+        self.Y = data_surface['Y']
         self.J_MPC_true = data_surface['J_MPC_true']
         self.J_MPC_bound = data_surface['J_MPC_bound']
         self.V_OPC = data_surface['V_OPC']
@@ -630,25 +705,24 @@ class Plotter_PF_LQMPC:
         self.data_alpha = data_alpha
         self.data_beta = data_beta
         self.horizon = np.arange(N_min, N_max + 1)
-        self.error = np.array([10 ** i for i in range(e_pow_min, e_pow_max + 1)])
+        self.error = np.array([10 ** i for i in range(e_power_min, e_power_max + 1)])
 
     def plot_plane_comparison(self, size, font_type, font_size, color_dict):
         """
         This function plots all the three performance surface.
         :return: NONE
         """
-        # Define the data
-        x_1 = self.X[1, :]
-        x_2 = self.X[2, :]
-
         # Plot
         fig = plt.figure(figsize=size)
         ax = fig.add_subplot(111, projection='3d')
 
         # Plot the surface
-        surf_mpc_true = ax.plot_surface(x_1, x_2, self.J_MPC_true, color="red", alpha=0.2, edgecolor='black')
-        surf_mpc_bound = ax.plot_surface(x_1, x_2, self.J_MPC_bound, color="green", alpha=0.2, edgecolor='black')
-        surf_opc = ax.plot_surface(x_1, x_2, self.V_OPC, color="blue", alpha=0.2, edgecolor='black')
+        surf_mpc_true = ax.plot_surface(self.X, self.Y, self.J_MPC_true, color=color_dict['C0'],
+                                        alpha=0.2, edgecolor='black')
+        surf_mpc_bound = ax.plot_surface(self.X, self.Y, self.J_MPC_bound, color=color_dict['C1'],
+                                         alpha=0.2, edgecolor='black')
+        surf_opc = ax.plot_surface(self.X, self.Y, self.V_OPC, color=color_dict['C2'],
+                                   alpha=0.2, edgecolor='black')
 
         # Calculate the color values for the data points based on Z values
         color_mpc_true = gradient_color(self.J_MPC_true, color_dict['C0'])
@@ -656,9 +730,9 @@ class Plotter_PF_LQMPC:
         color_surf_opc = gradient_color(self.V_OPC, color_dict['C2'])
 
         # Plot scatter markers for each data point with color based on Z values
-        ax.scatter(x_1, x_2, self.J_MPC_true, c=color_mpc_true, s=50)
-        ax.scatter(x_1, x_2, self.J_MPC_bound, c=color_mpc_bound, s=50)
-        ax.scatter(x_1, x_2, self.V_OPC, c=color_surf_opc, s=50)
+        ax.scatter(self.X.flatten(), self.Y.flatten(), self.J_MPC_true.flatten(), c=color_mpc_true, s=50)
+        ax.scatter(self.X.flatten(), self.Y.flatten(), self.J_MPC_bound.flatten(), c=color_mpc_bound, s=50)
+        ax.scatter(self.X.flatten(), self.Y.flatten(), self.V_OPC.flatten(), c=color_surf_opc, s=50)
 
         ax.legend([surf_mpc_true, surf_mpc_bound, surf_opc],
                   ['$J^{[\hat{\mu}_N]}_{\infty}$', '$J_{\text{bound}}$', '$V_{\infty}$'], loc='upper left',

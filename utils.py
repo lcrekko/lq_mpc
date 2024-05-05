@@ -596,6 +596,8 @@ def bar_u_solve(F_u):
 
     # create the model
     model = gp.Model("maximum-norm")
+    # disable the printing information
+    model.setParam('OutputFlag', 0)
 
     # define the decision variable
     u = model.addVars(dim_u, lb=-GRB.INFINITY, name="u")
@@ -624,6 +626,8 @@ def bar_d_u_solve(F_u):
 
     # Define the model
     model = gp.Model("maximum-difference")
+    # disable the printing information
+    model.setParam('OutputFlag', 0)
 
     # Create variables
     u_1 = model.addVars(dim_u, lb=-GRB.INFINITY, name="u_1")
@@ -638,6 +642,8 @@ def bar_d_u_solve(F_u):
 
     # Optimize
     model.optimize()
+
+    return model.objVal
 
 
 """
@@ -686,7 +692,7 @@ def circle_generator(N_points, ratio_ext_radius, my_base, Q):
     x0_base = np.array([[ratio_ext_radius * math.sqrt(my_base)], [0.0]])
 
     # Specify the rotation angles for rotating the initial state
-    my_theta = np.linspace(0, 2 * math.pi, N_points)
+    my_theta = np.linspace(0, 2 * (1 - 1 / N_points) * math.pi, N_points)
 
     # Computing the set of initial vectors that will be used
     x0_vec = np.linalg.inv(root_Q) @ rot_action_2D(x0_base, my_theta)
