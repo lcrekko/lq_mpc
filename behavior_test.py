@@ -95,12 +95,16 @@ ratio_vec = np.arange(1 + incremental_radius, ratio_x0 + incremental_radius, inc
 # M_V, p, N_points, ratio_vec)
 
 # plane data (mesh format)
-quadrant_range = np.array([0.12, 0.16])
+quadrant_range_x = np.array([0.12, 0.16])
+quadrant_range_y = np.array([0.12, 0.16])
+quadrant_range = {'x': quadrant_range_x, 'y': quadrant_range_y}
+
 data_surface = my_behavior.data_generation_mesh(N_horizon, sim_info, sys_true, err_nominal, info_ref,
                                                 M_V, p, quadrant_range)
 
-# print(f"The plane data is", info_plane)
+print(f"The plane data is", data_surface)
 
+'''
 # --------------------- Plotting the data ----------------------
 # Define the plotter
 my_behavior_plotter = Plotter_PF_LQMPC(data_surface, data_xi, data_alpha, data_beta,
@@ -119,3 +123,4 @@ my_font_size = {"title": fig_height_square * 4, "label": fig_height_square * 4, 
 
 my_behavior_plotter.plot_plane_comparison(fig_size_square, my_font_type, my_font_size, color_dict)
 my_behavior_plotter.plot_fc_ec(fig_size_rectangle, my_font_type, my_font_size, err_level, N_horizon)
+'''

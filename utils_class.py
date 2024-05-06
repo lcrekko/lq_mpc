@@ -666,14 +666,14 @@ class LQ_RDP_Behavior:
 
                 # Computing the open-loop MPC cost for each of the points, knowing the true system
                 temp_info_ol_mpc = ol_mpc.solve(temp_point, x_ref_long, u_ref_long)
-                V_OPC[i][j] = temp_info_ol_mpc['V_N']
+                V_OPC[i, j] = temp_info_ol_mpc['V_N']
 
                 # Computing the cost bound for each of the points
-                J_MPC_bound[i][j] = decreasing_factor * (temp_alpha[i] * V_OPC[i] + temp_beta[i])
+                J_MPC_bound[i, j] = decreasing_factor * (temp_alpha * V_OPC[i, j] + temp_beta)
 
                 # Computing the closed-loop MPC cost for each of the points, knowing the estimated system
                 temp_info_cl_mpc = cl_mpc.simulate(temp_point, A_true, B_true, x_ref, u_ref)
-                J_MPC_true[i][j] = temp_info_cl_mpc['J_T']
+                J_MPC_true[i, j] = temp_info_cl_mpc['J_T']
 
         return {'X': coord_X, 'Y': coord_Y, 'J_MPC_true': J_MPC_true, 'J_MPC_bound': J_MPC_bound, 'V_OPC': V_OPC}
 
