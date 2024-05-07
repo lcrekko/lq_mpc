@@ -776,6 +776,7 @@ class Plotter_PF_LQMPC:
                          fontsize=font_size["legend"],
                          prop={'family': font_type, 'size': font_size["legend"]})
         axs[0, 0].set_xscale('log')
+        axs[0, 0].grid(True, linestyle='--', color='gray', linewidth=0.5)
         # alpha changes w.r.t. horizon
         axs[0, 1].plot(self.horizon, self.data_alpha['horizon'],
                        label=r'$\alpha_N$',
@@ -791,8 +792,9 @@ class Plotter_PF_LQMPC:
         axs[0, 1].legend(loc='upper left',
                          fontsize=font_size["legend"],
                          prop={'family': font_type, 'size': font_size["legend"]})
-        axs[0, 1].set_yscale('log')
+        # axs[0, 1].set_yscale('log')
         axs[0, 1].set_xticks(self.horizon)
+        axs[0, 1].grid(True, linestyle='--', color='gray', linewidth=0.5)
         # axs[0, 1].set_xticklabels(self.horizon)
 
         # ----------------- Plots about beta -------------------
@@ -812,6 +814,7 @@ class Plotter_PF_LQMPC:
                          fontsize=font_size["legend"],
                          prop={'family': font_type, 'size': font_size["legend"]})
         axs[1, 0].set_xscale('log')
+        axs[1, 0].grid(True, linestyle='--', color='gray', linewidth=0.5)
         # beta changes w.r.t. horizon
         axs[1, 1].plot(self.horizon, self.data_beta['horizon'],
                        label=r'$\beta_N$',
@@ -827,8 +830,9 @@ class Plotter_PF_LQMPC:
         axs[1, 1].legend(loc='upper left',
                          fontsize=font_size["legend"],
                          prop={'family': font_type, 'size': font_size["legend"]})
-        axs[1, 1].set_yscale('log')
+        # axs[1, 1].set_yscale('log')
         axs[1, 1].set_xticks(self.horizon)
+        axs[1, 1].grid(True, linestyle='--', color='gray', linewidth=0.5)
 
         # ----------------- Plots about xi -------------------
         # xi changes w.r.t. error
@@ -847,6 +851,7 @@ class Plotter_PF_LQMPC:
                          fontsize=font_size["legend"],
                          prop={'family': font_type, 'size': font_size["legend"]})
         axs[2, 0].set_xscale('log')
+        axs[2, 0].grid(True, linestyle='--', color='gray', linewidth=0.5)
         # xi changes w.r.t. horizon
         axs[2, 1].plot(self.horizon, self.data_xi['horizon'],
                        label=r'$\xi_N$',
@@ -862,8 +867,9 @@ class Plotter_PF_LQMPC:
         axs[2, 1].legend(loc='upper left',
                          fontsize=font_size["legend"],
                          prop={'family': font_type, 'size': font_size["legend"]})
-        axs[2, 1].set_yscale('log')
+        # axs[2, 1].set_yscale('log')
         axs[2, 1].set_xticks(self.horizon)
+        axs[2, 1].grid(True, linestyle='--', color='gray', linewidth=0.5)
 
         # Adjust layout to prevent overlapping of subplots
         plt.tight_layout()

@@ -4,12 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="63ea9d13-1b9c-4a47-973b-39700708c2ac" name="Changes" comment="K">
-      <change afterPath="$PROJECT_DIR$/error_consistent_curves.svg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/performance_comparison.svg" afterDir="false" />
+    <list default="true" id="63ea9d13-1b9c-4a47-973b-39700708c2ac" name="Changes" comment="begin changes">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/behavior_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/behavior_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/plotter_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/plotter_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/error_consistent_curves.svg" beforeDir="false" afterPath="$PROJECT_DIR$/error_consistent_curves.svg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/performance_comparison.svg" beforeDir="false" afterPath="$PROJECT_DIR$/performance_comparison.svg" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/utils_class.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils_class.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -41,7 +39,7 @@
   }
 }</component>
   <component name="ProblemsViewState">
-    <option name="selectedTabId" value="ProjectErrors" />
+    <option name="selectedTabId" value="CurrentFile" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 1
@@ -209,7 +207,15 @@
       <option name="project" value="LOCAL" />
       <updated>1715035936226</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="begin changes">
+      <option name="closed" value="true" />
+      <created>1715086721251</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1715086721251</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -228,9 +234,9 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="begin changes" />
     <MESSAGE value="K" />
-    <option name="LAST_COMMIT_MESSAGE" value="K" />
+    <MESSAGE value="begin changes" />
+    <option name="LAST_COMMIT_MESSAGE" value="begin changes" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
@@ -242,7 +248,7 @@
     <SUITE FILE_PATH="coverage/lq_mpc$working_example.coverage" NAME="working_example Coverage Results" MODIFIED="1714919514966" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/lq_mpc$mpc_test.coverage" NAME="mpc_test Coverage Results" MODIFIED="1714562647212" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/lq_mpc$basic_test_2.coverage" NAME="basic_test_2 Coverage Results" MODIFIED="1714514647400" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/lq_mpc$behavior_test.coverage" NAME="behavior_test Coverage Results" MODIFIED="1715086634371" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/lq_mpc$behavior_test.coverage" NAME="behavior_test Coverage Results" MODIFIED="1715091881043" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/lq_mpc$plotter_test.coverage" NAME="plotter_test Coverage Results" MODIFIED="1715086244991" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
