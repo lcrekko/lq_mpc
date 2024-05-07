@@ -102,9 +102,8 @@ quadrant_range = {'x': quadrant_range_x, 'y': quadrant_range_y}
 data_surface = my_behavior.data_generation_mesh(N_horizon, sim_info, sys_true, err_nominal, info_ref,
                                                 M_V, p, quadrant_range)
 
-print(f"The plane data is", data_surface)
+# print(f"The plane data is", data_surface)
 
-'''
 # --------------------- Plotting the data ----------------------
 # Define the plotter
 my_behavior_plotter = Plotter_PF_LQMPC(data_surface, data_xi, data_alpha, data_beta,
@@ -119,8 +118,11 @@ fig_size_rectangle = np.array([fig_height_rectangle * 0.5 * (math.sqrt(5) + 1), 
 fig_size_square = np.array([fig_height_square * 0.5 * (math.sqrt(5) + 1), fig_height_square * 0.5 * (math.sqrt(5) + 1)])
 
 my_font_type = "Times New Roman"
-my_font_size = {"title": fig_height_square * 4, "label": fig_height_square * 4, "legend": fig_height_square * 4}
+my_font_size_square = {"title": fig_height_square * 4, "label": fig_height_square * 4,
+                       "legend": fig_height_square * 4}
+my_font_size_rectangle = {"title": fig_height_square * 8, "label": fig_height_square * 8,
+                          "legend": fig_height_square * 8}
 
-my_behavior_plotter.plot_plane_comparison(fig_size_square, my_font_type, my_font_size, color_dict)
-my_behavior_plotter.plot_fc_ec(fig_size_rectangle, my_font_type, my_font_size, err_level, N_horizon)
-'''
+my_behavior_plotter.plot_plane_comparison(fig_size_square, my_font_type, my_font_size_square, color_dict)
+my_behavior_plotter.plot_fc_ec(fig_size_rectangle, my_font_type, my_font_size_rectangle, color_dict,
+                               err_level, N_horizon)

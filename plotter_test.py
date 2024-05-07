@@ -53,5 +53,6 @@ ax.legend([surf_Z, surf_R], ['Z = X * Y', 'R = X^2 + Y^2'], loc='upper left')
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
 ax.set_zlabel('Values')
+ax.set_zscale('log')
 
 plt.show()

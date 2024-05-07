@@ -735,7 +735,7 @@ class Plotter_PF_LQMPC:
         ax.scatter(self.X.flatten(), self.Y.flatten(), self.V_OPC.flatten(), c=color_surf_opc, s=50)
 
         ax.legend([surf_mpc_true, surf_mpc_bound, surf_opc],
-                  ['$J^{[\hat{\mu}_N]}_{\infty}$', '$J_{\text{bound}}$', '$V_{\infty}$'], loc='upper left',
+                  ['$J^{[\hat{\mu}_N]}_{\infty}$', '$J_{\mathrm{bound}}$', '$V_{\infty}$'], loc='upper left',
                   fontsize=font_size["legend"], prop={'family': font_type, 'size': font_size["legend"]})
         # ax.legend([sc_Z, sc_R], ['Z = X * Y', 'R = X^2 + Y^2'], loc='upper right')
 
@@ -744,16 +744,17 @@ class Plotter_PF_LQMPC:
         ax.set_ylabel(r'$x_2$', fontdict={'family': font_type, 'size': font_size["label"], 'weight': 'bold'})
         ax.set_zlabel('Cost Value')
         ax.set_zscale('log')
+        plt.savefig('performance_comparison.svg', format='svg', dpi=300)
 
         plt.show()
 
-    def plot_fc_ec(self, size, font_type, font_size, error_nominal, horizon_nominal):
+    def plot_fc_ec(self, size, font_type, font_size, color_dict, error_level, horizon_nominal):
         """
         This function plots the behavior of the error_consistent functions
         :param size: figure size
         :param font_type: font type
         :param font_size: font sizes of the titles, labels and legends
-        :param error_nominal: the nominal error
+        :param error_level: the error_level of the nominal chosen error
         :param horizon_nominal: the nominal prediction horizon
         :return: NONE
         """
@@ -761,7 +762,10 @@ class Plotter_PF_LQMPC:
         # ----------------- Plots about alpha -------------------
         # alpha changes w.r.t. error
         axs[0, 0].plot(self.error, self.data_alpha['error'],
-                       label=r'$\alpha_N$')
+                       label=r'$\alpha_N$',
+                       marker='o', markersize=8, markerfacecolor=color_dict['C3'],
+                       markeredgewidth=2, markeredgecolor='blue',
+                       linewidth=2, color=color_dict['C0'])
         axs[0, 0].set_title(r'$N = {}$'.format(horizon_nominal),
                             fontdict={'family': font_type, 'size': font_size["label"],
                                       'weight': 'bold'})
@@ -774,8 +778,11 @@ class Plotter_PF_LQMPC:
         axs[0, 0].set_xscale('log')
         # alpha changes w.r.t. horizon
         axs[0, 1].plot(self.horizon, self.data_alpha['horizon'],
-                       label=r'$\alpha_N$')
-        axs[0, 1].set_title(r'$\delta_A = \delta_B = {}$'.format(error_nominal),
+                       label=r'$\alpha_N$',
+                       marker='s', markersize=8, markerfacecolor=color_dict['C4'],
+                       markeredgewidth=2, markeredgecolor='blue',
+                       linewidth=2, color=color_dict['C0'])
+        axs[0, 1].set_title(r'$\delta_A = \delta_B = {}$'.format(error_level),
                             fontdict={'family': font_type, 'size': font_size["label"],
                                       'weight': 'bold'})
         axs[0, 1].set_xlabel(r'$N$', fontdict={'family': font_type, 'size': font_size["label"],
@@ -785,11 +792,16 @@ class Plotter_PF_LQMPC:
                          fontsize=font_size["legend"],
                          prop={'family': font_type, 'size': font_size["legend"]})
         axs[0, 1].set_yscale('log')
+        axs[0, 1].set_xticks(self.horizon)
+        # axs[0, 1].set_xticklabels(self.horizon)
 
         # ----------------- Plots about beta -------------------
         # beta changes w.r.t. error
         axs[1, 0].plot(self.error, self.data_beta['error'],
-                       label=r'\beta_N')
+                       label=r'$\beta_N$',
+                       marker='o', markersize=8, markerfacecolor=color_dict['C3'],
+                       markeredgewidth=2, markeredgecolor='blue',
+                       linewidth=2, color=color_dict['C1'])
         axs[1, 0].set_title(r'$N = {}$'.format(horizon_nominal),
                             fontdict={'family': font_type, 'size': font_size["label"],
                                       'weight': 'bold'})
@@ -802,8 +814,11 @@ class Plotter_PF_LQMPC:
         axs[1, 0].set_xscale('log')
         # beta changes w.r.t. horizon
         axs[1, 1].plot(self.horizon, self.data_beta['horizon'],
-                       label=r'$\beta_N$')
-        axs[1, 1].set_title(r'$\delta_A = \delta_B = {}$'.format(error_nominal),
+                       label=r'$\beta_N$',
+                       marker='s', markersize=8, markerfacecolor=color_dict['C4'],
+                       markeredgewidth=2, markeredgecolor='blue',
+                       linewidth=2, color=color_dict['C1'])
+        axs[1, 1].set_title(r'$\delta_A = \delta_B = {}$'.format(error_level),
                             fontdict={'family': font_type, 'size': font_size["label"],
                                       'weight': 'bold'})
         axs[1, 1].set_xlabel(r'$N$', fontdict={'family': font_type, 'size': font_size["label"],
@@ -813,11 +828,15 @@ class Plotter_PF_LQMPC:
                          fontsize=font_size["legend"],
                          prop={'family': font_type, 'size': font_size["legend"]})
         axs[1, 1].set_yscale('log')
+        axs[1, 1].set_xticks(self.horizon)
 
         # ----------------- Plots about xi -------------------
         # xi changes w.r.t. error
         axs[2, 0].plot(self.error, self.data_xi['error'],
-                       label=r'\xi_N')
+                       label=r'$\xi_N$',
+                       marker='o', markersize=8, markerfacecolor=color_dict['C3'],
+                       markeredgewidth=2, markeredgecolor='blue',
+                       linewidth=2, color=color_dict['C2'])
         axs[2, 0].set_title(r'$N = {}$'.format(horizon_nominal),
                             fontdict={'family': font_type, 'size': font_size["label"],
                                       'weight': 'bold'})
@@ -829,9 +848,12 @@ class Plotter_PF_LQMPC:
                          prop={'family': font_type, 'size': font_size["legend"]})
         axs[2, 0].set_xscale('log')
         # xi changes w.r.t. horizon
-        axs[2, 1].plot(self.horizon, self.data_xi[2, :],
-                       label=r'$\xi_N$')
-        axs[2, 1].set_title(r'$\delta_A = \delta_B = {}$'.format(error_nominal),
+        axs[2, 1].plot(self.horizon, self.data_xi['horizon'],
+                       label=r'$\xi_N$',
+                       marker='s', markersize=8, markerfacecolor=color_dict['C4'],
+                       markeredgewidth=2, markeredgecolor='blue',
+                       linewidth=2, color=color_dict['C2'])
+        axs[2, 1].set_title(r'$\delta_A = \delta_B = {}$'.format(error_level),
                             fontdict={'family': font_type, 'size': font_size["label"],
                                       'weight': 'bold'})
         axs[2, 1].set_xlabel(r'$N$', fontdict={'family': font_type, 'size': font_size["label"],
@@ -841,9 +863,11 @@ class Plotter_PF_LQMPC:
                          fontsize=font_size["legend"],
                          prop={'family': font_type, 'size': font_size["legend"]})
         axs[2, 1].set_yscale('log')
+        axs[2, 1].set_xticks(self.horizon)
 
         # Adjust layout to prevent overlapping of subplots
         plt.tight_layout()
+        plt.savefig('error_consistent_curves.svg', format='svg', dpi=300)
 
         # Show the plot
         plt.show()
