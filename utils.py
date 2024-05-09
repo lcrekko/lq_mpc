@@ -34,6 +34,7 @@ From Proposition 2: energy-decreasing factors
 13. fc_ec_h --- $h$
 """
 import numpy as np
+import random
 # import cvxpy as cp
 import gurobipy as gp
 from gurobipy import GRB
@@ -720,6 +721,10 @@ Some additional functions for plotting
 
 
 def default_color_generator():
+    """
+    This function returns the default colors used in matplotlib
+    :return:
+    """
     my_color_dict = {'C0': np.array([0.12156862745098039, 0.4666666666666667, 0.7058823529411765]),
                      'C1': np.array([1.0, 0.4980392156862745, 0.054901960784313725]),
                      'C2': np.array([0.17254901960784313, 0.6274509803921569, 0.17254901960784313]),
@@ -735,6 +740,7 @@ def default_color_generator():
 
 
 def gradient_color(Value, color_base):
+
     min_Value = Value.min()
     max_Value = Value.max()
     colors_z = ['color' for _ in range(len(Value.flatten()))]
@@ -746,3 +752,59 @@ def gradient_color(Value, color_base):
                        1)  # (R, G, B, alpha)
 
     return colors_z
+
+
+def generate_random_matrix(rows, cols, a, b):
+    """
+    This is a function that generates a random matrix whose entry obeys the uniform distribution
+    from [a, b]
+    :param rows: number of rows
+    :param cols: number of cols
+    :param a: the left bound
+    :param b: the right bound
+    :return: A random matrix
+    """
+    matrix = []
+    for _ in range(rows):
+        row = []
+        for _ in range(cols):
+            row.append(random.uniform(a, b))
+        matrix.append(row)
+    return np.array(matrix)
+
+
+def random_matrix(M, N_matrix, norm_bound, norm_type: str):
+    """
+    This function creates a bunch of random matrix satisfying a specific norm
+    :param M: The baseline matrix
+    :param N_matrix: The number of required matrix
+    :param norm_type: character, either 'f', '2'
+    :param norm_bound: the error bound
+    :return: A bunch of matrix 3-dimensional, M.shape[0] -by- M.shape[1] -by- N_matrix
+    """
+    # Get the row and column of the desired matrix
+    my_row = M.shape[0]
+    my_col = M.shape[1]
+
+    # Set the counter to be 0
+    set_counter = 0
+
+    # Initialize the output matrix
+    out_set_matrices = np.zeros([my_row, my_col, N_matrix-1])
+
+    # Set the loop
+    if norm_type == 'f':
+        while set_counter < N_matrix:
+            temp_M = generate_random_matrix(my_row, my_col, -norm_bound, norm_bound)
+            if np.linalg.norm(temp_M) <= norm_bound:
+                out_set_matrices[:, :, set_counter] = temp_M
+                set_counter += 1
+    elif norm_type == '2':
+        while set_counter < N_matrix:
+            temp_M = generate_random_matrix(my_row, my_col, -norm_bound, norm_bound)
+            if np.linalg.norm(temp_M, ord=2) <= norm_bound:
+                out_set_matrices[:, :, set_counter] = temp_M
+                set_counter += 1
+
+
+

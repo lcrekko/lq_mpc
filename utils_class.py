@@ -730,9 +730,9 @@ class Plotter_PF_LQMPC:
         color_surf_opc = gradient_color(self.V_OPC, color_dict['C2'])
 
         # Plot scatter markers for each data point with color based on Z values
-        ax.scatter(self.X.flatten(), self.Y.flatten(), self.J_MPC_true.flatten(), c=color_mpc_true, s=50)
-        ax.scatter(self.X.flatten(), self.Y.flatten(), self.J_MPC_bound.flatten(), c=color_mpc_bound, s=50)
-        ax.scatter(self.X.flatten(), self.Y.flatten(), self.V_OPC.flatten(), c=color_surf_opc, s=50)
+        sc_true = ax.scatter(self.X.flatten(), self.Y.flatten(), self.J_MPC_true.flatten(), c=color_mpc_true, s=50)
+        sc_bound = ax.scatter(self.X.flatten(), self.Y.flatten(), self.J_MPC_bound.flatten(), c=color_mpc_bound, s=50)
+        sc_opc = ax.scatter(self.X.flatten(), self.Y.flatten(), self.V_OPC.flatten(), c=color_surf_opc, s=50)
 
         ax.legend([surf_mpc_true, surf_mpc_bound, surf_opc],
                   ['$J^{[\hat{\mu}_N]}_{\infty}$', '$J_{\mathrm{bound}}$', '$V_{\infty}$'], loc='upper left',
