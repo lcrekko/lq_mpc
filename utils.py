@@ -33,6 +33,7 @@ From Proposition 2: energy-decreasing factors
 12. fc_omega_0d5 --- $\omega_{N, (0.5)}$
 13. fc_ec_h --- $h$
 """
+import matplotlib.pyplot as plt
 import numpy as np
 import random
 # import cvxpy as cp
@@ -608,7 +609,7 @@ def bar_u_solve(F_u):
 
     # Add constraint F_u * u <= 1
     for i in range(n_constr):
-        model.addConstr(gp.quicksum(F_u[i, j] * u[j] for j in range(dim_u)) <= 1)
+        model.addConstr(gp.quicksum(F_u[i, j] * u[j] for j in range(dim_u)) <= 1, name="u_constr" + str(i))
 
     # Solve the problem
     model.optimize()
@@ -638,8 +639,8 @@ def bar_d_u_solve(F_u):
     model.setObjective(gp.quicksum((u_1[i] - u_2[i]) * (u_1[i] - u_2[i]) for i in range(dim_u)), GRB.MAXIMIZE)
 
     for i in range(n_constr):
-        model.addConstr(gp.quicksum(F_u[i, j] * u_1[j] for j in range(dim_u)) <= 1)
-        model.addConstr(gp.quicksum(F_u[i, j] * u_2[j] for j in range(dim_u)) <= 1)
+        model.addConstr(gp.quicksum(F_u[i, j] * u_1[j] for j in range(dim_u)) <= 1, name="u_constr" + str(i))
+        model.addConstr(gp.quicksum(F_u[i, j] * u_2[j] for j in range(dim_u)) <= 1, name="u_constr" + str(i + n_constr))
 
     # Optimize
     model.optimize()
@@ -807,4 +808,73 @@ def random_matrix(M, N_matrix, norm_bound, norm_type: str):
                 set_counter += 1
 
 
+'''
+I need some functions for plotting data, it will simplify the main plotting function
+'''
 
+
+def statistical_continuous(ax: plt.Axes, x_data: np.ndarray, y_data: np.ndarray,
+                           info_text: dict, info_color: tuple,
+                           font_type: str, font_size: dict,
+                           x_scale_log=False, y_scale_log=False) -> None:
+    """
+    This function plots a statistical data series
+    :param ax: the handle of the subplots, e.g., ax[1, 0] (the second row, first column)
+    :param x_data: the x-axis data (1-D array)
+    :param y_data: a bunch of y-axis data (2-D array)
+    :param info_text: the text information, a dictionary that contains labels and titles
+    :param info_color: color information, just a color
+    :param font_type: the type of the used font
+    :param font_size: the size of the used font, a dictionary that contains the font size
+                      for label, title, and legend
+    :param x_scale_log: whether the x-axis is in log
+    :param y_scale_log: whether the y-axis is in log
+    :return: NONE (simply execute a set of commands)
+    """
+    # Compute the max, min, mena and variance
+    y_max = np.max(y_data, axis=0)
+    y_min = np.min(y_data, axis=0)
+    y_mean = np.mean(y_data, axis=0)
+    y_std = np.std(y_data, axis=0)
+
+    # Creat color variations
+    color_bound = tuple(x * 0.75 for x in info_color)
+    color_variance = tuple(x * 0.5 for x in info_color)
+    color_range = tuple(x * 0.25 for x in info_color)
+
+    # basic mean plot
+    ax.plot(x_data, y_mean,
+            label=r'{}'.format(info_text['data']),
+            linewidth=2.5, color=info_color)
+    # plot the max and min
+    ax.plot(x_data, y_min,
+            linewidth=1.5, linestyle='dotted', color=color_bound)
+    ax.plot(x_data, y_max,
+            linewidth=1.5, linestyle='dotted', color=color_bound)
+
+    # plot the variance (fill the shaded color)
+    ax.fill_between(x_data, y_mean - y_std, y_mean + y_std, color=color_variance, alpha=0.25)
+
+    # plot the max and the min (fill the shaded color)
+    ax.fill_between(x_data, y_min, y_max, color=color_range, alpha=0.125)
+
+    # set the title and the labels
+    ax.set_title(r'{}'.format(info_text['title']),
+                 fontdict={'family': font_type, 'size': font_size["label"], 'weight': 'bold'})
+    ax.set_xlabel(r'{}'.format(info_text['x_label']),
+                  fontdict={'family': font_type, 'size': font_size["label"], 'weight': 'bold'})
+    # ax.set_ylabel('Y Label')
+
+    # set the legend
+    ax.legend(loc='upper left', fontsize=font_size["legend"],
+              prop={'family': font_type, 'size': font_size["legend"]})
+
+    # set the log-scale
+    if x_scale_log:
+        ax.set_xscale('log')
+    if y_scale_log:
+        ax.set_yscale('log')
+
+    # set the background and grid
+    ax.set_facecolor('lightgrey')
+    ax.grid(True, linestyle='--', color='white', linewidth=0.5)

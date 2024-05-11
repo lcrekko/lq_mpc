@@ -1,58 +1,37 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import math
+from utils import statistical_continuous
 
-# from mpl_toolkits.mplot3d import Axes3D
+# we are not going to test a plot that shows the mean, variance, the maximum and minimum value
+n_points = 20
+n_value = 20
 
-# Define the data
-X = np.array([1, 2, 3])
-Y = np.array([1, 2, 3])
+x_data = np.linspace(0, 1, n_points)
+y_data_1 = np.random.rand(n_value, n_points)
+y_data_2 = 2 * np.random.rand(n_value, n_points)
 
-# Create a meshgrid from X and Y
-X, Y = np.meshgrid(X, Y)
+color_1 = (0.12156862745098039, 0.4666666666666667, 0.7058823529411765)
+color_2 = (1.0, 0.4980392156862745, 0.054901960784313725)
 
-# Calculate Z values for each pair of X[i], Y[j]
-Z = X * Y
-R = X ** 2 + Y ** 2
+fig_height_rectangle = 4
+fig_height_square = 3
+font_type = "Times New Roman"
+fig_size_rectangle = np.array([fig_height_rectangle * 0.5 * (math.sqrt(5) + 1),
+                               fig_height_rectangle])
+font_size_rectangle = {"title": fig_height_square * 8, "label": fig_height_square * 8,
+                       "legend": fig_height_square * 8}
 
-print(Z)
+info_text_1 = {'title': "data 1", 'x_label': "$x$", 'data': '$y_1$'}
+info_text_2 = {'title': "data 2", 'x_label': "$x$", 'data': '$y_2$'}
 
-# Plot
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
+fig, ax = plt.subplots(2, 1,
+                       figsize=(fig_size_rectangle[0] * 1, fig_size_rectangle[1] * 2))
 
-# Plot the surface
-surf_Z = ax.plot_surface(X, Y, Z, color="red", alpha=0.2, edgecolor='black')
-surf_R = ax.plot_surface(X, Y, R, color="green", alpha=0.2, edgecolor='black')
+statistical_continuous(ax[0], x_data, y_data_1,
+                       info_text_1, color_1, font_type, font_size_rectangle)
+statistical_continuous(ax[1], x_data, y_data_2,
+                       info_text_2, color_2, font_type, font_size_rectangle)
 
-# Calculate the color values for the data points based on Z values
-min_z = Z.min()
-max_z = Z.max()
-colors_z = ['red' for _ in range(len(X.flatten()))]
-for i, z_val in enumerate(Z.flatten()):
-    normalized_z = (z_val - min_z) / (max_z - min_z)
-    colors_z[i] = (normalized_z, 0, 0, 1)  # (R, G, B, alpha)
-
-# Plot scatter markers for each data point with color based on Z values
-sc_Z = ax.scatter(X.flatten(), Y.flatten(), Z.flatten(), c=colors_z, s=50)
-
-# Calculate the color values for the data points based on Z values
-min_r = R.min()
-max_r = R.max()
-colors_r = ['green' for _ in range(len(X.flatten()))]
-for i, r_val in enumerate(R.flatten()):
-    normalized_r = (r_val - min_r) / (max_r - min_r)
-    colors_r[i] = (0, normalized_r, 0, 1)  # (R, G, B, alpha)
-
-# Plot scatter markers for each data point with color based on Z values
-sc_R = ax.scatter(X.flatten(), Y.flatten(), R.flatten(), c=colors_r, s=50)
-
-ax.legend([surf_Z, surf_R], ['Z = X * Y', 'R = X^2 + Y^2'], loc='upper left')
-# ax.legend([sc_Z, sc_R], ['Z = X * Y', 'R = X^2 + Y^2'], loc='upper right')
-
-# Labels
-ax.set_xlabel('X')
-ax.set_ylabel('Y')
-ax.set_zlabel('Values')
-ax.set_zscale('log')
-
+plt.tight_layout()
 plt.show()
