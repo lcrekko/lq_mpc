@@ -774,7 +774,8 @@ def generate_random_matrix(rows, cols, a, b):
     return np.array(matrix)
 
 
-def random_matrix(M, N_matrix, norm_bound, norm_type: str):
+def random_matrix(M: np.ndarray, N_matrix: int,
+                  norm_bound, norm_type: str) -> np.ndarray:
     """
     This function creates a bunch of random matrix satisfying a specific norm
     :param M: The baseline matrix
@@ -791,11 +792,16 @@ def random_matrix(M, N_matrix, norm_bound, norm_type: str):
     set_counter = 0
 
     # Initialize the output matrix
-    out_set_matrices = np.zeros([my_row, my_col, N_matrix-1])
+    out_set_matrices = np.zeros([my_row, my_col, 5 * N_matrix])
 
     # Set the loop
     if norm_type == 'f':
         while set_counter < N_matrix:
+            temp_M = generate_random_matrix(my_row, my_col, -norm_bound, norm_bound)
+            if np.isclose(np.linalg.norm(temp_M), norm_bound):
+                out_set_matrices[:, :, set_counter] = temp_M
+                set_counter += 1
+        while set_counter < 5 * N_matrix:
             temp_M = generate_random_matrix(my_row, my_col, -norm_bound, norm_bound)
             if np.linalg.norm(temp_M) <= norm_bound:
                 out_set_matrices[:, :, set_counter] = temp_M
@@ -803,9 +809,40 @@ def random_matrix(M, N_matrix, norm_bound, norm_type: str):
     elif norm_type == '2':
         while set_counter < N_matrix:
             temp_M = generate_random_matrix(my_row, my_col, -norm_bound, norm_bound)
+            if np.isclose(np.linalg.norm(temp_M, ord=2), norm_bound):
+                out_set_matrices[:, :, set_counter] = temp_M
+                set_counter += 1
+        while set_counter < 5 * N_matrix:
+            temp_M = generate_random_matrix(my_row, my_col, -norm_bound, norm_bound)
             if np.linalg.norm(temp_M, ord=2) <= norm_bound:
                 out_set_matrices[:, :, set_counter] = temp_M
                 set_counter += 1
+
+    return out_set_matrices
+
+
+def error_matrix_generator(A: np.ndarray, B: np.ndarray,
+                           error_vec: np.ndarray, N_matrix: int, norm_type) -> dict:
+    """
+    This function generates error matrix for different error level
+    :param A: The matrix A
+    :param B: The matrix B
+    :param error_vec: the error vector specifying all the required error levels
+    :param N_matrix: The number of matrix for each error level
+    :param norm_type: The type of considered norm
+    :return: A dictionary that contains two elements, A and B
+             each of which is a 4D numpy array
+    """
+    output_A = np.zeros([A.shape[0], A.shape[1], 5 * N_matrix, len(error_vec)])
+    output_B = np.zeros([B.shape[0], B.shape[1], 5 * N_matrix, len(error_vec)])
+    for i in range(len(error_vec)):
+        output_A[:, :, :, i] = random_matrix(A, N_matrix, error_vec[i], norm_type)
+        output_B[:, :, :, i] = random_matrix(B, N_matrix, error_vec[i], norm_type)
+
+    np.save('error_A' + '_' + norm_type + '.npy', output_A)
+    np.save('error_B' + '_' + norm_type + '.npy', output_B)
+
+    return {'error_A': output_A, 'error_B': output_B}
 
 
 '''
@@ -876,5 +913,5 @@ def statistical_continuous(ax: plt.Axes, x_data: np.ndarray, y_data: np.ndarray,
         ax.set_yscale('log')
 
     # set the background and grid
-    ax.set_facecolor('lightgrey')
+    ax.set_facecolor((0.95, 0.95, 0.95))
     ax.grid(True, linestyle='--', color='white', linewidth=0.5)

@@ -1,11 +1,13 @@
 import math
 import cvxpy as cp
 import numpy as np
+import control as ct
 import matplotlib.pyplot as plt
 from utils import (bar_u_solve, bar_d_u_solve,
                    local_radius, ex_stability_lq, ex_stability_bounds,
                    fc_omega_eta, fc_ec_h, fc_ec_E, fc_omega_eta_extension,
-                   circle_generator, gradient_color)
+                   circle_generator, gradient_color,
+                   error_matrix_generator)
 
 plt.rcParams.update({
     "text.usetex": True,
@@ -518,7 +520,8 @@ class LQ_RDP_Behavior:
 
         return {'error': alpha_error, 'horizon': alpha_horizon}, {'error': beta_error, 'horizon': beta_horizon}
 
-    def data_generation_plane(self, N, sim_info, sys_true, err_nominal, info_ref, M_V, p, N_points, ratio_ext_radius):
+    def data_generation_plane(self, N, sim_info, sys_true, err_nominal, info_ref,
+                              M_V, p, N_points, ratio_ext_radius):
         """
         This function generates the data for J_MPC, J_MPC_bound, and V_OPC value for each of the points on
         the circle
@@ -605,7 +608,8 @@ class LQ_RDP_Behavior:
 
         return {'X': X, 'J_MPC_true': J_MPC_true, 'J_MPC_bound': J_MPC_bound, 'V_OPC': V_OPC}
 
-    def data_generation_mesh(self, N, sim_info, sys_true, err_nominal, info_ref, M_V, p, quadrant_range):
+    def data_generation_mesh(self, N, sim_info, sys_true, err_nominal, info_ref,
+                             M_V, p, quadrant_range):
         """
         Generates data points that form a mesh grid, which is more convenient for plotting the surface
         :param N: Prediction horizon
@@ -614,7 +618,7 @@ class LQ_RDP_Behavior:
         :param err_nominal: nominal error of the model
         :param info_ref: Reference of the state and input
         :param M_V: Energy bound
-        :param p: pair of scalars p
+        :param p: scalars p
         :param quadrant_range: the range in the first quadrant
         :return: A dictionary with all the data points and their corresponding cost values
         """
@@ -676,6 +680,189 @@ class LQ_RDP_Behavior:
                 J_MPC_true[i, j] = temp_info_cl_mpc['J_T']
 
         return {'X': coord_X, 'Y': coord_Y, 'J_MPC_true': J_MPC_true, 'J_MPC_bound': J_MPC_bound, 'V_OPC': V_OPC}
+
+
+class LQ_RDP_Behavior_Multiple:
+    """
+    This class is an extension of the class LQ_RDP_Behavior where we create
+    multiple sets of data for each of the estimated system
+    """
+
+    def __init__(self, info_opc: dict, N_info: dict, e_pow_info: dict,
+                 N_sys: int, norm_type: str, errM_import=True):
+        """
+        This is the initialization of the class LQ_RDP_Behavior_Multiple
+        :param info_opc: Dictionary with information about the optimal control problem
+               It contains the following items:
+               1. 'A' -> The system matrix A
+               2. 'B' -> The system matrix B
+               3. 'Q' -> The objective matrix Q
+               4. 'R' -> The objective matrix R
+               5. 'F_u' -> The constraint matrix F_u
+        :param N_info: Dictionary with information about the prediction horizon
+               It contains the following items:
+               1. 'N_min' -> The minimum prediction horizon
+               2. 'N_max' -> The maximum prediction horizon
+               3. 'N_nominal' -> The nominal prediction horizon
+               4. 'N_opc' -> The open-loop optimal control horizon
+        :param e_pow_info: Dictionary with information about the modeling error
+               It contains the following items:
+               1. 'e_pow_min' -> The minimum power of the modeling error
+               2. 'e_pow_max' -> The maximum power of the modeling error
+               3. 'e_pow_nominal' -> The nominal power of the modeling error
+        :param N_sys: Number of systems for a given level of modeling error
+        :param norm_type: the type of the considered norm, either 'f' or '2'
+        :param errM_import: whether to import the error matrix from existing data
+        """
+        # extract optimal control information
+        self.A_true = info_opc['A']
+        self.B_true = info_opc['B']
+        self.Q = info_opc['Q']
+        self.R = info_opc['R']
+        self.F_u = info_opc['F_u']
+
+        # get the number of system
+        self.N_sys = 5 * N_sys  # check the function random_matrix in utils to see why it is 5
+
+        # extract the prediction information
+        self.N_min = N_info['N_min']
+        self.N_max = N_info['N_max']
+        self.N_nominal = N_info['N_nominal']
+        self.N_opc = N_info['N_opc']
+
+        # extract the error information
+        self.e_pow_min = e_pow_info['e_pow_min']
+        self.e_pow_max = e_pow_info['e_pow_max']
+        self.e_pow_nominal = e_pow_info['e_pow_nominal']
+
+        # get the prediction vector
+        self.horizon = np.arange(N_info['N_min'], N_info['N_max'] + 1)
+
+        # get the error vector
+        self.error_vec = np.array([10 ** i for i in range(e_pow_info['e_pow_min'], e_pow_info['e_pow_max'] + 1)])
+
+        # obtain the delta matrices
+        if errM_import:
+            self.error_A = np.load('error_A' + '_' + norm_type + '.npy')
+            self.error_B = np.load('error_A' + '_' + norm_type + '.npy')
+        else:
+            dic_err_M = error_matrix_generator(self.A_true, self.B_true, self.error_vec, N_sys, norm_type)
+            self.error_A = dic_err_M['error_A']
+            self.error_B = dic_err_M['error_B']
+
+        # Compute the expert cost
+        self.mpc_open = LQ_MPC_Controller(self.N_opc, self.A_true, self.B_true, self.Q, self.R,
+                                          self.Q, self.F_u)
+
+        # Computing the LQR optimal gain -- Remark: the convention is A - BK
+        K_lqr, _, _ = ct.dlqr(self.A_true, self.B_true, self.Q, self.R)
+
+        # Computing the terminal set for the LQR gain
+        self.epsilon_lqr = local_radius(self.F_u, -K_lqr, self.Q)
+
+    def data_generation(self, N_points: int, ext_radius_max: float,
+                        info_ref: dict, p: np.ndarray, method='LQR') -> dict:
+        """
+        Generates data xi tables, alpha tables, beta tables, and performance tables
+        :param N_points: The number of points considered on the circle
+        :param ext_radius_max: The extended radius of the minimum circle
+        :param info_ref: the reference information
+        :param p: the pair of scalars p
+        :param method: the method used for computing the stabilizing gain, default is 'LQR'
+        :return: A dictionary with all the tables as well as the variation range
+        """
+        # ----------------- Determination of x_0 and Computation of V_{\infty} ----------------
+        # get the open-loop reference trajectory
+        x_ref_opc = info_ref['x_ref_long']
+        u_ref_opc = info_ref['u_ref_long']
+
+        # determine our starting point uniformly used in this example
+        x0_vec = circle_generator(N_points, ext_radius_max, self.epsilon_lqr, self.Q)
+        x_start_global = x0_vec[:, 1]
+
+        # get the expert cost
+        V_expert = self.mpc_open.solve(x_start_global, x_ref_opc, u_ref_opc)
+
+        # --------------- computation of variation w.r.t. error ------------------
+        # Initialize the table
+        alpha_table_error = np.zeros([self.N_sys, len(self.error_vec)])
+        beta_table_error = np.zeros([self.N_sys, len(self.error_vec)])
+        xi_table_error = np.zeros([self.N_sys, len(self.error_vec)])
+        bound_table_error = np.zeros([self.N_sys, len(self.error_vec)])
+
+        x_ref_nominal = info_ref['x_ref']
+        u_ref_nominal = info_ref['u_ref']
+
+        # Outer-loop (looping error)
+        for i in range(len(self.error_vec)):
+            # get the error level
+            my_err = self.error_vec[i]
+            for j in range(self.N_sys):
+                # obtain the perturbed matrices A and B
+                A = self.A_true + self.error_A[:, :, j, i]
+                B = self.B_true + self.error_B[:, :, j, i]
+
+                # ------------- Determine the energy bound M_V --------------
+                # Specify the MPC
+                my_MPC = LQ_MPC_Controller(self.N_nominal, A, B, self.Q, self.R, self.Q, self.F_u)
+
+                # Initialize a variable to store the open-loop cost
+                temp_energy_vec = np.zeros(x0_vec.shape[1])
+
+                # loop computation
+                for k in range(x0_vec.shape[1]):
+                    info_MPC_test = my_MPC.solve(x0_vec[:, k], x_ref_nominal, u_ref_nominal)
+                    temp_energy_vec[k] = info_MPC_test['V_N']
+
+                # taking the maximum to get an estimate of the energy bar
+                M_V = np.max(temp_energy_vec)
+
+                # ------------- Computation of the value xi ----------------
+                # Initialize the calculator
+                temp_calculator = LQ_RDP_Calculator(A, B, self.Q, self.R, self.F_u)
+
+                # Compute the stabilizing gain
+                my_K, _, _ = ct.dlqr(A, B, self.Q, self.R)
+
+                temp_info_decrease = temp_calculator.energy_decreasing(self.N_nominal, my_err, my_err,
+                                                                       my_K, M_V)
+                # get the xi value
+                xi_table_error[j, i] = temp_info_decrease['xi']
+                # get eta for computing the bound (used the next subsection)
+                temp_eta = temp_info_decrease['eta']
+
+                # ------------- Computation of the value alpha and beta --------------
+                temp_info_bound = temp_calculator.energy_bound(self.N_nominal, my_err, my_err,
+                                                               x_start_global, p)
+                # compute alpha
+                alpha_table_error[j, i] = temp_info_bound['alpha']
+                # compute beta
+                beta_table_error[j, i] = temp_info_bound['beta']
+                # compute bound
+                bound_table_error[j, i] = ((alpha_table_error[j, i] * V_expert + beta_table_error[j, i]) /
+                                           (1 - xi_table_error[j, i] - temp_eta))
+
+        # --------------- computation of variation w.r.t. horizon ------------------
+        # Initialize the table
+        alpha_table_horizon = np.zeros([self.N_sys, len(self.horizon)])
+        beta_table_horizon = np.zeros([self.N_sys, len(self.horizon)])
+        xi_table_horizon = np.zeros([self.N_sys, len(self.horizon)])
+        bound_table_horizon = np.zeros([self.N_sys, len(self.horizon)])
+
+        err_horizon = 10 ** self.e_pow_nominal
+
+        # Outer-loop (looping horizon)
+        for i in range(len(self.horizon)):
+            x_ref_temp = np.zeros([self.A_true.shape[1], self.horizon[i]])
+            u_ref_temp = np.zeros([self.B_true.shape[1], self.horizon[i]])
+
+
+
+
+
+
+
+
 
 
 class Plotter_PF_LQMPC:
@@ -754,6 +941,7 @@ class Plotter_PF_LQMPC:
         :param size: figure size
         :param font_type: font type
         :param font_size: font sizes of the titles, labels and legends
+        :param color_dict: dictionary with colors
         :param error_level: the error_level of the nominal chosen error
         :param horizon_nominal: the nominal prediction horizon
         :return: NONE
