@@ -10,9 +10,9 @@ import numpy as np
 
 A = np.zeros([2, 2])
 B = np.zeros([2, 1])
-e_pow_info = {'e_pow_min': -6, 'e_pow_max': -2}
-error_vec = np.array([10 ** i for i in range(e_pow_info['e_pow_min'],
-                                             e_pow_info['e_pow_max'] + 1)])
+e_info = {'e_min': 10 ** (-3), 'e_max': 10 ** (-2)}
+error_vec = np.linspace(e_info['e_min'], e_info['e_max'], 10)
+
 N_matrix = 5
 
 output = error_matrix_generator(A, B, error_vec, N_matrix, '2')

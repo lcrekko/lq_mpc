@@ -31,7 +31,7 @@ info_opc = {'A': A, 'B': B,
 # --------------- Prediction horizon and reference information -------------
 N_min = 6
 N_max = 10
-N_nominal = 6
+N_nominal = 7
 N_opc = 30
 
 info_N = {'N_min': N_min, 'N_max': N_max,
@@ -47,12 +47,12 @@ info_ref = {'x_ref': x_ref, 'u_ref': u_ref,
             'x_ref_long': x_ref_long, 'u_ref_long': u_ref_long}
 
 # --------------------- Modeling error information ---------------------
-e_pow_min = -6
-e_pow_max = -2
-e_pow_nominal = -2
+e_min = 10 ** (-3)
+e_max = 10 ** (-2)
+e_nominal = 0.5 * (10 ** (-3))
 
-info_e_pow = {'e_pow_min': e_pow_min, 'e_pow_max': e_pow_max,
-              'e_pow_nominal': e_pow_nominal}
+info_e = {'e_min': e_min, 'e_max': e_max,
+          'e_nominal': e_nominal}
 N_matrix = 5
 '''
 (Uncomment this section if you do NOT want to use the preload data)
@@ -78,22 +78,27 @@ p = np.array([0.1, 1, 0.6])
 color_dict = default_color_generator()
 
 # figure size
-fig_height_rectangle = 4
+fig_height_rectangle = 2
 # using golden-ratio format
 fig_size_rectangle = np.array([fig_height_rectangle * 0.5 * (math.sqrt(5) + 1), fig_height_rectangle])
 
 # font type and size
 my_font_type = "Times New Roman"
-my_font_size_rectangle = {"title": fig_height_rectangle * 8, "label": fig_height_rectangle * 8,
-                          "legend": fig_height_rectangle * 8}
+my_font_size_rectangle = {"title": fig_height_rectangle * 6, "label": fig_height_rectangle * 6,
+                          "legend": fig_height_rectangle * 6}
 
 # ----------------- Main commands -----------------
-
+'''
+(Uncomment this section if you want to recompute the data again)
 # initialize the class for generating data
-my_behavior_multiple = LQ_RDP_Behavior_Multiple(info_opc, info_N, info_e_pow,
+my_behavior_multiple = LQ_RDP_Behavior_Multiple(info_opc, info_N, info_e,
                                                 N_matrix, 'f')
 # generate data
 data_table = my_behavior_multiple.data_generation(N_points, ext_radius_max, info_ref, p)
+'''
+
+data_table = np.load('data_lq_mpc_multipleSys.npz')
+# data_table = dict(data_table)
 
 # initialize the class for plotting
 my_plotter = Plotter_PF_LQMPC_Multiple(color_dict, fig_size_rectangle,
@@ -103,6 +108,6 @@ my_plotter.plotter_error(N_nominal, data_table['error'],
                          data_table['alpha_table_error'], data_table['beta_table_error'],
                          data_table['xi_table_error'], data_table['bound_table_error'])
 # Plotting variation for prediction horizon
-my_plotter.plotter_horizon(N_nominal, data_table['horizon'],
+my_plotter.plotter_horizon(e_nominal, data_table['horizon'],
                            data_table['alpha_table_horizon'], data_table['beta_table_horizon'],
                            data_table['xi_table_horizon'], data_table['bound_table_horizon'])

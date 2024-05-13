@@ -731,15 +731,16 @@ class LQ_RDP_Behavior_Multiple:
         self.N_opc = info_N['N_opc']
 
         # extract the error information
-        self.e_pow_min = info_e_pow['e_pow_min']
-        self.e_pow_max = info_e_pow['e_pow_max']
-        self.e_pow_nominal = info_e_pow['e_pow_nominal']
+        self.e_min = info_e_pow['e_min']
+        self.e_max = info_e_pow['e_max']
+        self.e_nominal = info_e_pow['e_nominal']
 
         # get the prediction vector
         self.horizon = np.arange(info_N['N_min'], info_N['N_max'] + 1)
 
         # get the error vector
-        self.error_vec = np.array([10 ** i for i in range(info_e_pow['e_pow_min'], info_e_pow['e_pow_max'] + 1)])
+        # self.error_vec = np.array([10 ** i for i in range(info_e_pow['e_pow_min'], info_e_pow['e_pow_max'] + 1)])
+        self.error_vec = np.linspace(self.e_min, self.e_max, 10)
 
         # obtain the delta matrices
         if errM_import:
@@ -851,7 +852,7 @@ class LQ_RDP_Behavior_Multiple:
         bound_table_horizon = np.zeros([self.N_sys, len(self.horizon)])
 
         # get the nominal error
-        err_horizon = 10 ** self.e_pow_nominal
+        err_horizon = self.e_nominal
         # get the index of the nominal error
         try:
             index_sys = np.where(self.horizon == err_horizon)[0]
@@ -859,7 +860,7 @@ class LQ_RDP_Behavior_Multiple:
             print(f"Warning: the nominal error is not in the error list")
 
         # set the default index to be the last one (the greatest error level)
-        index_sys = -1
+        index_sys = 4
         # extract the set of matrices
         err_A_nominal = self.error_A[:, :, :, index_sys]
         err_B_nominal = self.error_B[:, :, :, index_sys]
@@ -914,16 +915,19 @@ class LQ_RDP_Behavior_Multiple:
                 bound_table_horizon[j, i] = ((alpha_table_horizon[j, i] * V_expert + beta_table_horizon[j, i]) /
                                              (1 - xi_table_horizon[j, i] - temp_eta))
 
-        return {'error': self.error_vec,
-                'horizon': self.horizon,
-                'alpha_table_error': alpha_table_error,
-                'beta_table_error': beta_table_error,
-                'xi_table_error': xi_table_error,
-                'bound_table_error': bound_table_error,
-                'alpha_table_horizon': alpha_table_horizon,
-                'beta_table_horizon': beta_table_horizon,
-                'xi_table_horizon': xi_table_horizon,
-                'bound_table_horizon': bound_table_horizon}
+        out_dict = {'error': self.error_vec,
+                    'horizon': self.horizon,
+                    'alpha_table_error': alpha_table_error,
+                    'beta_table_error': beta_table_error,
+                    'xi_table_error': xi_table_error,
+                    'bound_table_error': bound_table_error,
+                    'alpha_table_horizon': alpha_table_horizon,
+                    'beta_table_horizon': beta_table_horizon,
+                    'xi_table_horizon': xi_table_horizon,
+                    'bound_table_horizon': bound_table_horizon}
+
+        np.savez('data_lq_mpc_multipleSys.npz', **out_dict)
+        return out_dict
 
 
 class Plotter_PF_LQMPC:
@@ -1181,23 +1185,20 @@ class Plotter_PF_LQMPC_Multiple:
         # do the plotting
         statistical_continuous(ax[0, 0], error, alpha_table,
                                alpha_text, self.colors['C0'],
-                               self.font_type, self.font_size,
-                               x_scale_log=True)
+                               self.font_type, self.font_size)
         statistical_continuous(ax[0, 1], error, beta_table,
                                beta_text, self.colors['C1'],
-                               self.font_type, self.font_size,
-                               x_scale_log=True)
+                               self.font_type, self.font_size)
         statistical_continuous(ax[1, 0], error, xi_table,
                                xi_text, self.colors['C2'],
-                               self.font_type, self.font_size,
-                               x_scale_log=True)
+                               self.font_type, self.font_size)
         statistical_continuous(ax[1, 1], error, bound_table,
                                bound_text, self.colors['C3'],
                                self.font_type, self.font_size,
-                               x_scale_log=True, y_scale_log=True)
+                               y_scale_log=True)
         # Show and save
         plt.tight_layout()
-        plt.savefig('error_variation.svg', format='svg', dpi=300)
+        plt.savefig('error_variation.svg', format='svg', dpi=500)
         plt.show()
 
     def plotter_horizon(self, err_nominal: float, horizon: np.ndarray,
@@ -1234,18 +1235,21 @@ class Plotter_PF_LQMPC_Multiple:
         # do the plotting
         statistical_continuous(ax[0, 0], horizon, alpha_table,
                                alpha_text, self.colors['C0'],
-                               self.font_type, self.font_size)
+                               self.font_type, self.font_size,
+                               set_x_ticks=True)
         statistical_continuous(ax[0, 1], horizon, beta_table,
                                beta_text, self.colors['C1'],
-                               self.font_type, self.font_size)
+                               self.font_type, self.font_size,
+                               set_x_ticks=True)
         statistical_continuous(ax[1, 0], horizon, xi_table,
                                xi_text, self.colors['C2'],
-                               self.font_type, self.font_size)
+                               self.font_type, self.font_size,
+                               set_x_ticks=True)
         statistical_continuous(ax[1, 1], horizon, bound_table,
                                bound_text, self.colors['C3'],
                                self.font_type, self.font_size,
-                               y_scale_log=True)
+                               y_scale_log=True, set_x_ticks=True)
         # Show and save
         plt.tight_layout()
-        plt.savefig('horizon_variation.svg', format='svg', dpi=300)
+        plt.savefig('horizon_variation.svg', format='svg', dpi=500)
         plt.show()

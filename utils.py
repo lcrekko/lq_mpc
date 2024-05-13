@@ -853,7 +853,7 @@ I need some functions for plotting data, it will simplify the main plotting func
 def statistical_continuous(ax: plt.Axes, x_data: np.ndarray, y_data: np.ndarray,
                            info_text: dict, info_color: tuple,
                            font_type: str, font_size: dict,
-                           x_scale_log=False, y_scale_log=False) -> None:
+                           x_scale_log=False, y_scale_log=False, set_x_ticks=False) -> None:
     """
     This function plots a statistical data series
     :param ax: the handle of the subplots, e.g., ax[1, 0] (the second row, first column)
@@ -866,6 +866,7 @@ def statistical_continuous(ax: plt.Axes, x_data: np.ndarray, y_data: np.ndarray,
                       for label, title, and legend
     :param x_scale_log: whether the x-axis is in log
     :param y_scale_log: whether the y-axis is in log
+    :param set_x_ticks: whether to specify the x_ticks
     :return: NONE (simply execute a set of commands)
     """
     # Compute the max, min, mena and variance
@@ -905,6 +906,9 @@ def statistical_continuous(ax: plt.Axes, x_data: np.ndarray, y_data: np.ndarray,
                  fontdict={'family': font_type, 'size': font_size["label"], 'weight': 'bold'})
     ax.set_xlabel(info_text['x_label'],
                   fontdict={'family': font_type, 'size': font_size["label"], 'weight': 'bold'})
+    # set the x-axis
+    if set_x_ticks:
+        ax.set_xticks(x_data)
     # ax.set_ylabel('Y Label')
 
     # set the legend
