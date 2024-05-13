@@ -22,7 +22,7 @@ fig_size_rectangle = np.array([fig_height_rectangle * 0.5 * (math.sqrt(5) + 1),
 font_size_rectangle = {"title": fig_height_square * 8, "label": fig_height_square * 8,
                        "legend": fig_height_square * 8}
 
-info_text_1 = {'title': "data 1", 'x_label': "$x$", 'data': '$y_1$'}
+info_text_1 = {'title': r"$\xi$", 'x_label': "$x$", 'data': '$y_1$'}
 info_text_2 = {'title': "data 2", 'x_label': "$x$", 'data': '$y_2$'}
 
 fig, ax = plt.subplots(2, 1,

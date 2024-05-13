@@ -41,7 +41,7 @@ K_lqr, P_lqr, eig_lqr = ct.dlqr(A, B, Q, R)
 # Computing the terminal set for the LQR gain
 epsilon_lqr = local_radius(F_u, -K_lqr, Q)
 
-# Specifying the extension factor -- Remark: this factor must be greater than 1
+# Specify the extension factor -- Remark: this factor must be greater than 1
 ratio_x0 = 1.5
 
 # Computing the set of initial vectors that will be used

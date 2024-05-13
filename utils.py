@@ -726,16 +726,16 @@ def default_color_generator():
     This function returns the default colors used in matplotlib
     :return:
     """
-    my_color_dict = {'C0': np.array([0.12156862745098039, 0.4666666666666667, 0.7058823529411765]),
-                     'C1': np.array([1.0, 0.4980392156862745, 0.054901960784313725]),
-                     'C2': np.array([0.17254901960784313, 0.6274509803921569, 0.17254901960784313]),
-                     'C3': np.array([0.8392156862745098, 0.15294117647058825, 0.1568627450980392]),
-                     'C4': np.array([0.5803921568627451, 0.403921568627451, 0.7411764705882353]),
-                     'C5': np.array([0.5490196078431373, 0.33725490196078434, 0.29411764705882354]),
-                     'C6': np.array([0.8901960784313725, 0.4666666666666667, 0.7607843137254902]),
-                     'C7': np.array([0.4980392156862745, 0.4980392156862745, 0.4980392156862745]),
-                     'C8': np.array([0.7372549019607844, 0.7411764705882353, 0.13333333333333333]),
-                     'C9': np.array([0.09019607843137255, 0.7450980392156863, 0.8117647058823529])}
+    my_color_dict = {'C0': (0.12156862745098039, 0.4666666666666667, 0.7058823529411765),
+                     'C1': (1.0, 0.4980392156862745, 0.054901960784313725),
+                     'C2': (0.17254901960784313, 0.6274509803921569, 0.17254901960784313),
+                     'C3': (0.8392156862745098, 0.15294117647058825, 0.1568627450980392),
+                     'C4': (0.5803921568627451, 0.403921568627451, 0.7411764705882353),
+                     'C5': (0.5490196078431373, 0.33725490196078434, 0.29411764705882354),
+                     'C6': (0.8901960784313725, 0.4666666666666667, 0.7607843137254902),
+                     'C7': (0.4980392156862745, 0.4980392156862745, 0.4980392156862745),
+                     'C8': (0.7372549019607844, 0.7411764705882353, 0.13333333333333333),
+                     'C9': (0.09019607843137255, 0.7450980392156863, 0.8117647058823529)}
 
     return my_color_dict
 
@@ -881,13 +881,18 @@ def statistical_continuous(ax: plt.Axes, x_data: np.ndarray, y_data: np.ndarray,
 
     # basic mean plot
     ax.plot(x_data, y_mean,
-            label=r'{}'.format(info_text['data']),
+            label=info_text['data'],
             linewidth=2.5, color=info_color)
     # plot the max and min
     ax.plot(x_data, y_min,
-            linewidth=1.5, linestyle='dotted', color=color_bound)
+            linewidth=1.5, linestyle=':', color=color_bound)
     ax.plot(x_data, y_max,
-            linewidth=1.5, linestyle='dotted', color=color_bound)
+            linewidth=1.5, linestyle=':', color=color_bound)
+    # plot the max and min
+    ax.plot(x_data, y_mean - y_std,
+            linewidth=1.5, linestyle='--', color=color_bound)
+    ax.plot(x_data, y_mean + y_std,
+            linewidth=1.5, linestyle='--', color=color_bound)
 
     # plot the variance (fill the shaded color)
     ax.fill_between(x_data, y_mean - y_std, y_mean + y_std, color=color_variance, alpha=0.25)
@@ -896,9 +901,9 @@ def statistical_continuous(ax: plt.Axes, x_data: np.ndarray, y_data: np.ndarray,
     ax.fill_between(x_data, y_min, y_max, color=color_range, alpha=0.125)
 
     # set the title and the labels
-    ax.set_title(r'{}'.format(info_text['title']),
+    ax.set_title(info_text['title'],
                  fontdict={'family': font_type, 'size': font_size["label"], 'weight': 'bold'})
-    ax.set_xlabel(r'{}'.format(info_text['x_label']),
+    ax.set_xlabel(info_text['x_label'],
                   fontdict={'family': font_type, 'size': font_size["label"], 'weight': 'bold'})
     # ax.set_ylabel('Y Label')
 
@@ -914,4 +919,4 @@ def statistical_continuous(ax: plt.Axes, x_data: np.ndarray, y_data: np.ndarray,
 
     # set the background and grid
     ax.set_facecolor((0.95, 0.95, 0.95))
-    ax.grid(True, linestyle='--', color='white', linewidth=0.5)
+    ax.grid(True, linestyle='--', color='white', linewidth=1)

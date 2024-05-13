@@ -7,7 +7,7 @@ from utils import (bar_u_solve, bar_d_u_solve,
                    local_radius, ex_stability_lq, ex_stability_bounds,
                    fc_omega_eta, fc_ec_h, fc_ec_E, fc_omega_eta_extension,
                    circle_generator, gradient_color,
-                   error_matrix_generator)
+                   error_matrix_generator, statistical_continuous)
 
 plt.rcParams.update({
     "text.usetex": True,
@@ -688,7 +688,7 @@ class LQ_RDP_Behavior_Multiple:
     multiple sets of data for each of the estimated system
     """
 
-    def __init__(self, info_opc: dict, N_info: dict, e_pow_info: dict,
+    def __init__(self, info_opc: dict, info_N: dict, info_e_pow: dict,
                  N_sys: int, norm_type: str, errM_import=True):
         """
         This is the initialization of the class LQ_RDP_Behavior_Multiple
@@ -699,13 +699,13 @@ class LQ_RDP_Behavior_Multiple:
                3. 'Q' -> The objective matrix Q
                4. 'R' -> The objective matrix R
                5. 'F_u' -> The constraint matrix F_u
-        :param N_info: Dictionary with information about the prediction horizon
+        :param info_N: Dictionary with information about the prediction horizon
                It contains the following items:
                1. 'N_min' -> The minimum prediction horizon
                2. 'N_max' -> The maximum prediction horizon
                3. 'N_nominal' -> The nominal prediction horizon
                4. 'N_opc' -> The open-loop optimal control horizon
-        :param e_pow_info: Dictionary with information about the modeling error
+        :param info_e_pow: Dictionary with information about the modeling error
                It contains the following items:
                1. 'e_pow_min' -> The minimum power of the modeling error
                2. 'e_pow_max' -> The maximum power of the modeling error
@@ -725,26 +725,26 @@ class LQ_RDP_Behavior_Multiple:
         self.N_sys = 5 * N_sys  # check the function random_matrix in utils to see why it is 5
 
         # extract the prediction information
-        self.N_min = N_info['N_min']
-        self.N_max = N_info['N_max']
-        self.N_nominal = N_info['N_nominal']
-        self.N_opc = N_info['N_opc']
+        self.N_min = info_N['N_min']
+        self.N_max = info_N['N_max']
+        self.N_nominal = info_N['N_nominal']
+        self.N_opc = info_N['N_opc']
 
         # extract the error information
-        self.e_pow_min = e_pow_info['e_pow_min']
-        self.e_pow_max = e_pow_info['e_pow_max']
-        self.e_pow_nominal = e_pow_info['e_pow_nominal']
+        self.e_pow_min = info_e_pow['e_pow_min']
+        self.e_pow_max = info_e_pow['e_pow_max']
+        self.e_pow_nominal = info_e_pow['e_pow_nominal']
 
         # get the prediction vector
-        self.horizon = np.arange(N_info['N_min'], N_info['N_max'] + 1)
+        self.horizon = np.arange(info_N['N_min'], info_N['N_max'] + 1)
 
         # get the error vector
-        self.error_vec = np.array([10 ** i for i in range(e_pow_info['e_pow_min'], e_pow_info['e_pow_max'] + 1)])
+        self.error_vec = np.array([10 ** i for i in range(info_e_pow['e_pow_min'], info_e_pow['e_pow_max'] + 1)])
 
         # obtain the delta matrices
         if errM_import:
             self.error_A = np.load('error_A' + '_' + norm_type + '.npy')
-            self.error_B = np.load('error_A' + '_' + norm_type + '.npy')
+            self.error_B = np.load('error_B' + '_' + norm_type + '.npy')
         else:
             dic_err_M = error_matrix_generator(self.A_true, self.B_true, self.error_vec, N_sys, norm_type)
             self.error_A = dic_err_M['error_A']
@@ -761,14 +761,13 @@ class LQ_RDP_Behavior_Multiple:
         self.epsilon_lqr = local_radius(self.F_u, -K_lqr, self.Q)
 
     def data_generation(self, N_points: int, ext_radius_max: float,
-                        info_ref: dict, p: np.ndarray, method='LQR') -> dict:
+                        info_ref: dict, p: np.ndarray) -> dict:
         """
         Generates data xi tables, alpha tables, beta tables, and performance tables
         :param N_points: The number of points considered on the circle
         :param ext_radius_max: The extended radius of the minimum circle
         :param info_ref: the reference information
         :param p: the pair of scalars p
-        :param method: the method used for computing the stabilizing gain, default is 'LQR'
         :return: A dictionary with all the tables as well as the variation range
         """
         # ----------------- Determination of x_0 and Computation of V_{\infty} ----------------
@@ -781,7 +780,7 @@ class LQ_RDP_Behavior_Multiple:
         x_start_global = x0_vec[:, 1]
 
         # get the expert cost
-        V_expert = self.mpc_open.solve(x_start_global, x_ref_opc, u_ref_opc)
+        V_expert = self.mpc_open.solve(x_start_global, x_ref_opc, u_ref_opc)['V_N']
 
         # --------------- computation of variation w.r.t. error ------------------
         # Initialize the table
@@ -790,13 +789,14 @@ class LQ_RDP_Behavior_Multiple:
         xi_table_error = np.zeros([self.N_sys, len(self.error_vec)])
         bound_table_error = np.zeros([self.N_sys, len(self.error_vec)])
 
-        x_ref_nominal = info_ref['x_ref']
-        u_ref_nominal = info_ref['u_ref']
+        # x_ref_nominal = info_ref['x_ref']
+        # u_ref_nominal = info_ref['u_ref']
 
         # Outer-loop (looping error)
         for i in range(len(self.error_vec)):
             # get the error level
             my_err = self.error_vec[i]
+            # Inner-loop (looping the systems)
             for j in range(self.N_sys):
                 # obtain the perturbed matrices A and B
                 A = self.A_true + self.error_A[:, :, j, i]
@@ -811,21 +811,22 @@ class LQ_RDP_Behavior_Multiple:
 
                 # loop computation
                 for k in range(x0_vec.shape[1]):
-                    info_MPC_test = my_MPC.solve(x0_vec[:, k], x_ref_nominal, u_ref_nominal)
+                    info_MPC_test = my_MPC.solve(x0_vec[:, k], info_ref['x_ref'], info_ref['u_ref'])
                     temp_energy_vec[k] = info_MPC_test['V_N']
 
                 # taking the maximum to get an estimate of the energy bar
                 M_V = np.max(temp_energy_vec)
 
                 # ------------- Computation of the value xi ----------------
-                # Initialize the calculator
+                # initialize the calculator
                 temp_calculator = LQ_RDP_Calculator(A, B, self.Q, self.R, self.F_u)
 
-                # Compute the stabilizing gain
+                # compute the stabilizing gain
                 my_K, _, _ = ct.dlqr(A, B, self.Q, self.R)
 
+                # remember to pass the negative K for consistency
                 temp_info_decrease = temp_calculator.energy_decreasing(self.N_nominal, my_err, my_err,
-                                                                       my_K, M_V)
+                                                                       -my_K, M_V)
                 # get the xi value
                 xi_table_error[j, i] = temp_info_decrease['xi']
                 # get eta for computing the bound (used the next subsection)
@@ -849,20 +850,80 @@ class LQ_RDP_Behavior_Multiple:
         xi_table_horizon = np.zeros([self.N_sys, len(self.horizon)])
         bound_table_horizon = np.zeros([self.N_sys, len(self.horizon)])
 
+        # get the nominal error
         err_horizon = 10 ** self.e_pow_nominal
+        # get the index of the nominal error
+        try:
+            index_sys = np.where(self.horizon == err_horizon)[0]
+        except IndexError:
+            print(f"Warning: the nominal error is not in the error list")
+
+        # set the default index to be the last one (the greatest error level)
+        index_sys = -1
+        # extract the set of matrices
+        err_A_nominal = self.error_A[:, :, :, index_sys]
+        err_B_nominal = self.error_B[:, :, :, index_sys]
 
         # Outer-loop (looping horizon)
         for i in range(len(self.horizon)):
             x_ref_temp = np.zeros([self.A_true.shape[1], self.horizon[i]])
             u_ref_temp = np.zeros([self.B_true.shape[1], self.horizon[i]])
+            for j in range(self.N_sys):
+                # obtain the perturbed matrices A and B
+                A = self.A_true + err_A_nominal[:, :, j]
+                B = self.B_true + err_B_nominal[:, :, j]
 
+                # ------------- Determine the energy bound M_V --------------
+                # Specify the MPC
+                my_MPC = LQ_MPC_Controller(self.horizon[i], A, B, self.Q, self.R, self.Q, self.F_u)
 
+                # Initialize a variable to store the open-loop cost
+                temp_energy_vec = np.zeros(x0_vec.shape[1])
 
+                # loop computation
+                for k in range(x0_vec.shape[1]):
+                    info_MPC_test = my_MPC.solve(x0_vec[:, k], x_ref_temp, u_ref_temp)
+                    temp_energy_vec[k] = info_MPC_test['V_N']
 
+                # taking the maximum to get an estimate of the energy bar
+                M_V = np.max(temp_energy_vec)
 
+                # ------------- Computation of the value xi ----------------
+                # Initialize the calculator
+                temp_calculator = LQ_RDP_Calculator(A, B, self.Q, self.R, self.F_u)
 
+                # Compute the stabilizing gain
+                my_K, _, _ = ct.dlqr(A, B, self.Q, self.R)
 
+                # remember to pass the negative K for consistency
+                temp_info_decrease = temp_calculator.energy_decreasing(self.horizon[i], err_horizon, err_horizon,
+                                                                       -my_K, M_V)
+                # get the xi value
+                xi_table_horizon[j, i] = temp_info_decrease['xi']
+                # get eta for computing the bound (used the next subsection)
+                temp_eta = temp_info_decrease['eta']
 
+                # ------------- Computation of the value alpha and beta --------------
+                temp_info_bound = temp_calculator.energy_bound(self.horizon[i], err_horizon, err_horizon,
+                                                               x_start_global, p)
+                # compute alpha
+                alpha_table_horizon[j, i] = temp_info_bound['alpha']
+                # compute beta
+                beta_table_horizon[j, i] = temp_info_bound['beta']
+                # compute bound
+                bound_table_horizon[j, i] = ((alpha_table_horizon[j, i] * V_expert + beta_table_horizon[j, i]) /
+                                             (1 - xi_table_horizon[j, i] - temp_eta))
+
+        return {'error': self.error_vec,
+                'horizon': self.horizon,
+                'alpha_table_error': alpha_table_error,
+                'beta_table_error': beta_table_error,
+                'xi_table_error': xi_table_error,
+                'bound_table_error': bound_table_error,
+                'alpha_table_horizon': alpha_table_horizon,
+                'beta_table_horizon': beta_table_horizon,
+                'xi_table_horizon': xi_table_horizon,
+                'bound_table_horizon': bound_table_horizon}
 
 
 class Plotter_PF_LQMPC:
@@ -1064,4 +1125,127 @@ class Plotter_PF_LQMPC:
         plt.savefig('error_consistent_curves.svg', format='svg', dpi=300)
 
         # Show the plot
+        plt.show()
+
+
+class Plotter_PF_LQMPC_Multiple:
+    """
+    This class is used for plotting the performance for multiple systems
+    """
+
+    def __init__(self, color_dict: dict, fig_size: np.ndarray,
+                 font_type: str, font_size: dict):
+        """
+        This is the initialization of the plotter
+        :param color_dict: The color dictionary
+        :param fig_size: The size of the figure
+        :param font_type: the type of the font
+        :param font_size: a dictionary containing the size of the font
+        """
+        self.colors = color_dict
+        self.fig_size = fig_size
+        self.font_type = font_type
+        self.font_size = font_size
+
+    def plotter_error(self, N_nominal: int, error: np.ndarray,
+                      alpha_table: np.ndarray, beta_table: np.ndarray,
+                      xi_table: np.ndarray, bound_table: np.ndarray) -> None:
+        """
+        This function plot the curves for different error level
+        :param N_nominal: the nominal prediction horizon
+        :param error: the error vector
+        :param alpha_table: the alpha table
+        :param beta_table: the beta table
+        :param xi_table: the xi table
+        :param bound_table: the bound
+        :return: None (Simply do the plots, no return)
+        """
+        # initialize the figure
+        fig, ax = plt.subplots(2, 2,
+                               figsize=(self.fig_size[0] * 2, self.fig_size[1] * 2))
+
+        # specify the text
+        alpha_text = {'title': r'$N = {}$'.format(N_nominal),
+                      'x_label': r'$\delta$',
+                      'data': r'$\alpha_N$'}
+        beta_text = {'title': r'$N = {}$'.format(N_nominal),
+                     'x_label': '$\delta$',
+                     'data': r'$\beta_N$'}
+        xi_text = {'title': r'$N = {}$'.format(N_nominal),
+                   'x_label': r'$\delta$',
+                   'data': r'$\xi_N$'}
+        bound_text = {'title': r'$N = {}$'.format(N_nominal),
+                      'x_label': r'$\delta$',
+                      'data': r'$J_{\mathrm{bound}}$'}
+
+        # do the plotting
+        statistical_continuous(ax[0, 0], error, alpha_table,
+                               alpha_text, self.colors['C0'],
+                               self.font_type, self.font_size,
+                               x_scale_log=True)
+        statistical_continuous(ax[0, 1], error, beta_table,
+                               beta_text, self.colors['C1'],
+                               self.font_type, self.font_size,
+                               x_scale_log=True)
+        statistical_continuous(ax[1, 0], error, xi_table,
+                               xi_text, self.colors['C2'],
+                               self.font_type, self.font_size,
+                               x_scale_log=True)
+        statistical_continuous(ax[1, 1], error, bound_table,
+                               bound_text, self.colors['C3'],
+                               self.font_type, self.font_size,
+                               x_scale_log=True, y_scale_log=True)
+        # Show and save
+        plt.tight_layout()
+        plt.savefig('error_variation.svg', format='svg', dpi=300)
+        plt.show()
+
+    def plotter_horizon(self, err_nominal: float, horizon: np.ndarray,
+                        alpha_table: np.ndarray, beta_table: np.ndarray,
+                        xi_table: np.ndarray, bound_table: np.ndarray) -> None:
+        """
+        This function plot the curves for different error level
+        :param err_nominal: the nominal modeling error
+        :param horizon: the horizon vector
+        :param alpha_table: the alpha table
+        :param beta_table: the beta table
+        :param xi_table: the xi table
+        :param bound_table: the bound
+        :return: None (Simply do the plots, no return)
+        """
+        # initialize the figure
+        fig, ax = plt.subplots(2, 2,
+                               figsize=(self.fig_size[0] * 2, self.fig_size[1] * 2))
+
+        # specify the text
+        alpha_text = {'title': r'$\delta_A = \delta_B = {}$'.format(err_nominal),
+                      'x_label': r'$N$',
+                      'data': r'$\alpha_N$'}
+        beta_text = {'title': r'$\delta_A = \delta_B = {}$'.format(err_nominal),
+                     'x_label': r'$N$',
+                     'data': r'$\beta_N$'}
+        xi_text = {'title': r'$\delta_A = \delta_B = {}$'.format(err_nominal),
+                   'x_label': r'$N$',
+                   'data': r'$\xi_N$'}
+        bound_text = {'title': r'$\delta_A = \delta_B = {}$'.format(err_nominal),
+                      'x_label': r'$N$',
+                      'data': r'$J_{\mathrm{bound}}$'}
+
+        # do the plotting
+        statistical_continuous(ax[0, 0], horizon, alpha_table,
+                               alpha_text, self.colors['C0'],
+                               self.font_type, self.font_size)
+        statistical_continuous(ax[0, 1], horizon, beta_table,
+                               beta_text, self.colors['C1'],
+                               self.font_type, self.font_size)
+        statistical_continuous(ax[1, 0], horizon, xi_table,
+                               xi_text, self.colors['C2'],
+                               self.font_type, self.font_size)
+        statistical_continuous(ax[1, 1], horizon, bound_table,
+                               bound_text, self.colors['C3'],
+                               self.font_type, self.font_size,
+                               y_scale_log=True)
+        # Show and save
+        plt.tight_layout()
+        plt.savefig('horizon_variation.svg', format='svg', dpi=300)
         plt.show()
