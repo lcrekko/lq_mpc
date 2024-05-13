@@ -4,20 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="63ea9d13-1b9c-4a47-973b-39700708c2ac" name="Changes" comment="the multiple system simulation is 90% done, the result is in general good, however, it is still sensitive to prediction horizon, so only 7,8,9 are stable choice, I am going to further refine them">
-      <change afterPath="$PROJECT_DIR$/data_lq_mpc_multipleSys.npz" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/computation_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/computation_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/error_A_2.npy" beforeDir="false" afterPath="$PROJECT_DIR$/error_A_2.npy" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/error_A_f.npy" beforeDir="false" afterPath="$PROJECT_DIR$/error_A_f.npy" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/error_B_2.npy" beforeDir="false" afterPath="$PROJECT_DIR$/error_B_2.npy" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/error_B_f.npy" beforeDir="false" afterPath="$PROJECT_DIR$/error_B_f.npy" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/error_variation.svg" beforeDir="false" afterPath="$PROJECT_DIR$/error_variation.svg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/horizon_variation.svg" beforeDir="false" afterPath="$PROJECT_DIR$/horizon_variation.svg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils_class.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils_class.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/working_example_multiple.py" beforeDir="false" afterPath="$PROJECT_DIR$/working_example_multiple.py" afterDir="false" />
-    </list>
+    <list default="true" id="63ea9d13-1b9c-4a47-973b-39700708c2ac" name="Changes" comment="The multiple system simulation is finished, the result is good!" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -135,7 +122,7 @@
       <workItem from="1715260020260" duration="14123000" />
       <workItem from="1715437392594" duration="21407000" />
       <workItem from="1715517400581" duration="24711000" />
-      <workItem from="1715631278923" duration="4731000" />
+      <workItem from="1715631278923" duration="4914000" />
     </task>
     <task id="LOCAL-00001" summary="begin changes">
       <option name="closed" value="true" />
@@ -281,7 +268,15 @@
       <option name="project" value="LOCAL" />
       <updated>1715621773995</updated>
     </task>
-    <option name="localTasksCounter" value="19" />
+    <task id="LOCAL-00019" summary="The multiple system simulation is finished, the result is good!">
+      <option name="closed" value="true" />
+      <created>1715636883774</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1715636883774</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -304,7 +299,8 @@
     <MESSAGE value="K" />
     <MESSAGE value="some new changes about generating multiple bounds for different matrices (not finished yet), some error system matrices have also be created offline and can be loaded anytime" />
     <MESSAGE value="the multiple system simulation is 90% done, the result is in general good, however, it is still sensitive to prediction horizon, so only 7,8,9 are stable choice, I am going to further refine them" />
-    <option name="LAST_COMMIT_MESSAGE" value="the multiple system simulation is 90% done, the result is in general good, however, it is still sensitive to prediction horizon, so only 7,8,9 are stable choice, I am going to further refine them" />
+    <MESSAGE value="The multiple system simulation is finished, the result is good!" />
+    <option name="LAST_COMMIT_MESSAGE" value="The multiple system simulation is finished, the result is good!" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
