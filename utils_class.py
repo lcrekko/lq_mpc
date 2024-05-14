@@ -1138,22 +1138,25 @@ class Plotter_PF_LQMPC_Multiple:
     """
 
     def __init__(self, color_dict: dict, fig_size: np.ndarray,
-                 font_type: str, font_size: dict):
+                 font_type: str, font_size: dict, info_save: dict):
         """
         This is the initialization of the plotter
         :param color_dict: The color dictionary
         :param fig_size: The size of the figure
         :param font_type: the type of the font
         :param font_size: a dictionary containing the size of the font
+        :param info_save: the saving information: a dictionary containing the type and dpi
         """
         self.colors = color_dict
         self.fig_size = fig_size
         self.font_type = font_type
         self.font_size = font_size
+        self.info_save = info_save
 
     def plotter_error(self, N_nominal: int, error: np.ndarray,
                       alpha_table: np.ndarray, beta_table: np.ndarray,
-                      xi_table: np.ndarray, bound_table: np.ndarray) -> None:
+                      xi_table: np.ndarray, bound_table: np.ndarray,
+                      info_zoom: dict, figure_name: str) -> None:
         """
         This function plot the curves for different error level
         :param N_nominal: the nominal prediction horizon
@@ -1162,6 +1165,8 @@ class Plotter_PF_LQMPC_Multiple:
         :param beta_table: the beta table
         :param xi_table: the xi table
         :param bound_table: the bound
+        :param info_zoom: the zoomed-in plot information
+        :param figure_name: the name of the figure (used for saving)
         :return: None (Simply do the plots, no return)
         """
         # initialize the figure
@@ -1185,25 +1190,27 @@ class Plotter_PF_LQMPC_Multiple:
         # do the plotting
         statistical_continuous(ax[0, 0], error, alpha_table,
                                alpha_text, self.colors['C0'],
-                               self.font_type, self.font_size)
+                               self.font_type, self.font_size, info_zoom)
         statistical_continuous(ax[0, 1], error, beta_table,
                                beta_text, self.colors['C1'],
-                               self.font_type, self.font_size)
+                               self.font_type, self.font_size, info_zoom)
         statistical_continuous(ax[1, 0], error, xi_table,
                                xi_text, self.colors['C2'],
-                               self.font_type, self.font_size)
+                               self.font_type, self.font_size, info_zoom)
         statistical_continuous(ax[1, 1], error, bound_table,
                                bound_text, self.colors['C3'],
-                               self.font_type, self.font_size,
+                               self.font_type, self.font_size, info_zoom,
                                y_scale_log=True)
         # Show and save
         plt.tight_layout()
-        plt.savefig('error_variation.svg', format='svg', dpi=500)
+        plt.savefig(figure_name + '.' + self.info_save['type'], format=self.info_save['type'],
+                    dpi=self.info_save['dpi'])
         plt.show()
 
     def plotter_horizon(self, err_nominal: float, horizon: np.ndarray,
                         alpha_table: np.ndarray, beta_table: np.ndarray,
-                        xi_table: np.ndarray, bound_table: np.ndarray) -> None:
+                        xi_table: np.ndarray, bound_table: np.ndarray,
+                        info_zoom: dict, figure_name: str) -> None:
         """
         This function plot the curves for different error level
         :param err_nominal: the nominal modeling error
@@ -1212,6 +1219,8 @@ class Plotter_PF_LQMPC_Multiple:
         :param beta_table: the beta table
         :param xi_table: the xi table
         :param bound_table: the bound
+        :param info_zoom: the zoomed-in plot information
+        :param figure_name: the name of the figure
         :return: None (Simply do the plots, no return)
         """
         # initialize the figure
@@ -1235,21 +1244,23 @@ class Plotter_PF_LQMPC_Multiple:
         # do the plotting
         statistical_continuous(ax[0, 0], horizon, alpha_table,
                                alpha_text, self.colors['C0'],
-                               self.font_type, self.font_size,
-                               set_x_ticks=True)
+                               self.font_type, self.font_size, info_zoom,
+                               marker=True, set_x_ticks=True)
         statistical_continuous(ax[0, 1], horizon, beta_table,
                                beta_text, self.colors['C1'],
-                               self.font_type, self.font_size,
-                               set_x_ticks=True)
+                               self.font_type, self.font_size, info_zoom,
+                               marker=True, set_x_ticks=True)
         statistical_continuous(ax[1, 0], horizon, xi_table,
                                xi_text, self.colors['C2'],
-                               self.font_type, self.font_size,
-                               set_x_ticks=True)
+                               self.font_type, self.font_size, info_zoom,
+                               marker=True, set_x_ticks=True)
+        info_zoom['ratio'] = 5
         statistical_continuous(ax[1, 1], horizon, bound_table,
                                bound_text, self.colors['C3'],
-                               self.font_type, self.font_size,
-                               y_scale_log=True, set_x_ticks=True)
+                               self.font_type, self.font_size, info_zoom,
+                               marker=True, y_scale_log=True, set_x_ticks=True)
         # Show and save
         plt.tight_layout()
-        plt.savefig('horizon_variation.svg', format='svg', dpi=500)
+        plt.savefig(figure_name + '.' + self.info_save['type'], format=self.info_save['type'],
+                    dpi=self.info_save['dpi'])
         plt.show()

@@ -49,7 +49,7 @@ info_ref = {'x_ref': x_ref, 'u_ref': u_ref,
 # --------------------- Modeling error information ---------------------
 e_min = 10 ** (-3)
 e_max = 10 ** (-2)
-e_nominal = 0.5 * (10 ** (-3))
+e_nominal = 5 * (10 ** (-3))
 
 info_e = {'e_min': e_min, 'e_max': e_max,
           'e_nominal': e_nominal}
@@ -78,36 +78,58 @@ p = np.array([0.1, 1, 0.6])
 color_dict = default_color_generator()
 
 # figure size
-fig_height_rectangle = 2
+fig_height_rectangle = 3
 # using golden-ratio format
 fig_size_rectangle = np.array([fig_height_rectangle * 0.5 * (math.sqrt(5) + 1), fig_height_rectangle])
 
 # font type and size
 my_font_type = "Times New Roman"
 my_font_size_rectangle = {"title": fig_height_rectangle * 6, "label": fig_height_rectangle * 6,
-                          "legend": fig_height_rectangle * 6}
+                          "legend": fig_height_rectangle * 6, "tick": fig_height_rectangle * 6}
+# saving information
+info_save = {'type': 'svg', 'dpi': 1000}
 
 # ----------------- Main commands -----------------
 '''
-(Uncomment this section if you want to recompute the data again)
+# (Uncomment this section if you want to recompute the data again)
 # initialize the class for generating data
 my_behavior_multiple = LQ_RDP_Behavior_Multiple(info_opc, info_N, info_e,
                                                 N_matrix, 'f')
 # generate data
 data_table = my_behavior_multiple.data_generation(N_points, ext_radius_max, info_ref, p)
 '''
-
 data_table = np.load('data_lq_mpc_multipleSys.npz')
 # data_table = dict(data_table)
 
 # initialize the class for plotting
 my_plotter = Plotter_PF_LQMPC_Multiple(color_dict, fig_size_rectangle,
-                                       my_font_type, my_font_size_rectangle)
+                                       my_font_type, my_font_size_rectangle, info_save)
 # Plotting variation for modeling error
+info_zoom_error = {'zoom': True,
+                   'ratio': 3,
+                   'loc': 'lower right',
+                   'x_range': (0.004, 0.005),
+                   'set_x_ticks': False,
+                   'x_ticks': [0.004, 0.005],
+                   'y_auto': True,
+                   'y_range': (0, 1)}
+
 my_plotter.plotter_error(N_nominal, data_table['error'],
                          data_table['alpha_table_error'], data_table['beta_table_error'],
-                         data_table['xi_table_error'], data_table['bound_table_error'])
+                         data_table['xi_table_error'], data_table['bound_table_error'],
+                         info_zoom_error, 'error_variation')
+
 # Plotting variation for prediction horizon
+info_zoom_horizon = {'zoom': True,
+                     'ratio': 10,
+                     'loc': 'lower right',
+                     'x_range': (6.9, 7.1),
+                     'set_x_ticks': True,
+                     'x_ticks': [7],
+                     'y_auto': True,
+                     'y_range': (0, 1)}
+
 my_plotter.plotter_horizon(e_nominal, data_table['horizon'],
                            data_table['alpha_table_horizon'], data_table['beta_table_horizon'],
-                           data_table['xi_table_horizon'], data_table['bound_table_horizon'])
+                           data_table['xi_table_horizon'], data_table['bound_table_horizon'],
+                           info_zoom_horizon, 'horizon_variation')

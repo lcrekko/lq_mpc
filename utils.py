@@ -34,6 +34,7 @@ From Proposition 2: energy-decreasing factors
 13. fc_ec_h --- $h$
 """
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes, mark_inset
 import numpy as np
 import random
 # import cvxpy as cp
@@ -41,6 +42,7 @@ import gurobipy as gp
 from gurobipy import GRB
 from scipy.linalg import cho_factor
 import math
+import bisect
 
 '''
 Preliminaries
@@ -845,29 +847,49 @@ def error_matrix_generator(A: np.ndarray, B: np.ndarray,
     return {'error_A': output_A, 'error_B': output_B}
 
 
+def find_closest_index(a_vec, b):
+    """
+    Finds the index of a value in a_vec that is closed to b
+    :param a_vec: the array a_vec
+    :param b: the value b
+    :return: the index
+    """
+    # Handle edge cases
+    if not a_vec.all():
+        return None
+    if b <= a_vec[0]:
+        return 0
+    if b >= a_vec[-1]:
+        return len(a_vec) - 1
+
+    # Find the insertion point for b in the sorted array a
+    index = bisect.bisect_left(a_vec, b)
+
+    # Determine the closest index
+    if index == 0:
+        return 0
+    if index == len(a_vec):
+        return len(a_vec) - 1
+    return min(index, index - 1, key=lambda i: abs(a_vec[i] - b))
+
+
 '''
 I need some functions for plotting data, it will simplify the main plotting function
 '''
 
 
-def statistical_continuous(ax: plt.Axes, x_data: np.ndarray, y_data: np.ndarray,
-                           info_text: dict, info_color: tuple,
-                           font_type: str, font_size: dict,
-                           x_scale_log=False, y_scale_log=False, set_x_ticks=False) -> None:
+def statistical_continuous_kernel(ax: plt.Axes, x_data: np.ndarray, y_data: np.ndarray,
+                                  info_text: dict, info_color: tuple,
+                                  marker=False) -> None:
     """
-    This function plots a statistical data series
+    This is the kernel of the main plotting function statistical_continuous
     :param ax: the handle of the subplots, e.g., ax[1, 0] (the second row, first column)
     :param x_data: the x-axis data (1-D array)
     :param y_data: a bunch of y-axis data (2-D array)
     :param info_text: the text information, a dictionary that contains labels and titles
     :param info_color: color information, just a color
-    :param font_type: the type of the used font
-    :param font_size: the size of the used font, a dictionary that contains the font size
-                      for label, title, and legend
-    :param x_scale_log: whether the x-axis is in log
-    :param y_scale_log: whether the y-axis is in log
-    :param set_x_ticks: whether to specify the x_ticks
-    :return: NONE (simply execute a set of commands)
+    :param marker: whether to show the marker
+    :return: None
     """
     # Compute the max, min, mena and variance
     y_max = np.max(y_data, axis=0)
@@ -881,14 +903,25 @@ def statistical_continuous(ax: plt.Axes, x_data: np.ndarray, y_data: np.ndarray,
     color_range = tuple(x * 0.25 for x in info_color)
 
     # basic mean plot
-    ax.plot(x_data, y_mean,
-            label=info_text['data'],
-            linewidth=2.5, color=info_color)
+    if marker:
+        color_marker_face = (info_color[0] * 0.75, np.min([1, info_color[1] * 1.25]), info_color[2])
+        color_marker_edge = (np.min([1, info_color[0] * 1.25]), info_color[1] * 0.75, info_color[2])
+        ax.plot(x_data, y_mean,
+                label=info_text['data'],
+                linewidth=2.5, color=info_color,
+                marker='x', markersize=10, markerfacecolor=color_marker_face,
+                markeredgewidth=2, markeredgecolor=color_marker_edge)
+    else:
+        ax.plot(x_data, y_mean,
+                label=info_text['data'],
+                linewidth=2.5, color=info_color)
+
     # plot the max and min
     ax.plot(x_data, y_min,
             linewidth=1.5, linestyle=':', color=color_bound)
     ax.plot(x_data, y_max,
             linewidth=1.5, linestyle=':', color=color_bound)
+
     # plot the max and min
     ax.plot(x_data, y_mean - y_std,
             linewidth=1.5, linestyle='--', color=color_bound)
@@ -901,6 +934,70 @@ def statistical_continuous(ax: plt.Axes, x_data: np.ndarray, y_data: np.ndarray,
     # plot the max and the min (fill the shaded color)
     ax.fill_between(x_data, y_min, y_max, color=color_range, alpha=0.125)
 
+
+def statistical_continuous(ax: plt.Axes, x_data: np.ndarray, y_data: np.ndarray,
+                           info_text: dict, info_color: tuple,
+                           font_type: str, font_size: dict, info_zoom,
+                           marker=False,
+                           x_scale_log=False, y_scale_log=False,
+                           set_x_ticks=False) -> None:
+    """
+    This function plots a statistical data series
+    :param ax: the handle of the subplots, e.g., ax[1, 0] (the second row, first column)
+    :param x_data: the x-axis data (1-D array)
+    :param y_data: a bunch of y-axis data (2-D array)
+    :param info_text: the text information, a dictionary that contains labels and titles
+    :param info_color: color information, just a color
+    :param font_type: the type of the used font
+    :param font_size: the size of the used font, a dictionary that contains the font size
+                      for label, title, and legend
+    :param x_scale_log: whether the x-axis is in log
+    :param y_scale_log: whether the y-axis is in log
+    :param marker: whether to show the marker
+    :param set_x_ticks: whether to specify the x_ticks
+    :param info_zoom: information about whether zoomed in is added and how, it is a dictionary
+                      that contains the following information
+                      1. 'zoom' (boolean) True or False
+                      2. 'ratio' (float) ratio of the zoomed in
+                      3. 'loc' (str) location
+                      4. 'x_range' (tuple) (x_min, x_max)
+                      5. 'set_x_ticks' (bool) whether to set the x_ticks
+                      6. 'x_ticks' (list) the x ticks
+                      7. 'y_auto' (boolean) True of False, if it is True, the automatic range will be
+                      adjusted accordingly based on the x range
+                      8. 'y_range' (tuple) (y_min, y_max)
+    :return: NONE (simply execute a set of commands)
+    """
+    # do the plotting by calling the kernel plotting function
+    statistical_continuous_kernel(ax, x_data, y_data,
+                                  info_text, info_color,
+                                  marker=marker)
+    # do the zoomed-in plot if a zoom-in is required
+    if info_zoom['zoom']:
+        ax_zoom = zoomed_inset_axes(ax, zoom=info_zoom['ratio'], loc=info_zoom['loc'])
+        statistical_continuous_kernel(ax_zoom, x_data, y_data,
+                                      info_text, info_color,
+                                      marker=False)
+        # Set the limits of the inset axes to zoom in on a specific area
+        ax_zoom.set_xlim(info_zoom['x_range'][0], info_zoom['x_range'][1])
+        if info_zoom['set_x_ticks']:
+            ax_zoom.set_xticks(info_zoom['x_ticks'])
+        ax_zoom.xaxis.tick_top()
+        if info_zoom['y_auto']:
+            zoom_y_max = 1.001 * np.max(y_data, axis=0)
+            zoom_y_min = 0.999 * np.min(y_data, axis=0)
+            zoom_x_left = find_closest_index(x_data, info_zoom['x_range'][0])
+            zoom_x_right = find_closest_index(x_data, info_zoom['x_range'][1])
+            ax_zoom.set_ylim(np.min([zoom_y_min[zoom_x_left], zoom_y_min[zoom_x_right]]),
+                             np.max([zoom_y_max[zoom_x_left], zoom_y_max[zoom_x_right]]))
+        else:
+            ax_zoom.set_ylim(info_zoom['y_range'][0], info_zoom['y_range'][1])
+
+        # Mark the region of interest on the main plot
+        mark_inset(ax, ax_zoom, loc1=1, loc2=3, fc="none", ec="black")
+        ax_zoom.tick_params(axis='x', labelsize=0.5 * font_size["tick"])
+        ax_zoom.tick_params(axis='y', labelsize=0.5 * font_size["tick"])
+
     # set the title and the labels
     ax.set_title(info_text['title'],
                  fontdict={'family': font_type, 'size': font_size["label"], 'weight': 'bold'})
@@ -910,6 +1007,10 @@ def statistical_continuous(ax: plt.Axes, x_data: np.ndarray, y_data: np.ndarray,
     if set_x_ticks:
         ax.set_xticks(x_data)
     # ax.set_ylabel('Y Label')
+
+    # set size of the ticks
+    ax.tick_params(axis='x', labelsize=font_size["tick"])
+    ax.tick_params(axis='y', labelsize=font_size["tick"])
 
     # set the legend
     ax.legend(loc='upper left', fontsize=font_size["legend"],
