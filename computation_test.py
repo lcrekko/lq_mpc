@@ -1,7 +1,7 @@
 """
 This script is used for generating error matrix, the generated matrix is saved
 as npy files, we did for both Frobenius norm and the 2 norm, and we set the number of
-generated matrix to be 25
+generated matrix to be 100
 
 The time used for generating the matrix is rather short (approximately 5 seconds)
 """
@@ -13,7 +13,7 @@ B = np.zeros([2, 1])
 e_info = {'e_min': 10 ** (-3), 'e_max': 10 ** (-2)}
 error_vec = np.linspace(e_info['e_min'], e_info['e_max'], 10)
 
-N_matrix = 5
+N_matrix = 20  # The actual number is 20 * 5 = 100
 
 output = error_matrix_generator(A, B, error_vec, N_matrix, '2')
 

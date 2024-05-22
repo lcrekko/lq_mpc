@@ -53,7 +53,7 @@ e_nominal = 5 * (10 ** (-3))
 
 info_e = {'e_min': e_min, 'e_max': e_max,
           'e_nominal': e_nominal}
-N_matrix = 5
+N_matrix = 20
 '''
 (Uncomment this section if you do NOT want to use the preload data)
 # --------------------- Generate the error matrices ----------------------
