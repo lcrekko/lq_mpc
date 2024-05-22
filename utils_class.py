@@ -705,6 +705,7 @@ class LQ_RDP_Behavior_Multiple:
                2. 'N_max' -> The maximum prediction horizon
                3. 'N_nominal' -> The nominal prediction horizon
                4. 'N_opc' -> The open-loop optimal control horizon
+               5. 'N_mpc' -> The closed-loop MPC control horizon
         :param info_e_pow: Dictionary with information about the modeling error
                It contains the following items:
                1. 'e_pow_min' -> The minimum power of the modeling error
@@ -729,6 +730,7 @@ class LQ_RDP_Behavior_Multiple:
         self.N_max = info_N['N_max']
         self.N_nominal = info_N['N_nominal']
         self.N_opc = info_N['N_opc']
+        self.N_mpc = info_N['N_mpc']
 
         # extract the error information
         self.e_min = info_e_pow['e_min']
@@ -784,11 +786,14 @@ class LQ_RDP_Behavior_Multiple:
         V_expert = self.mpc_open.solve(x_start_global, x_ref_opc, u_ref_opc)['V_N']
 
         # --------------- computation of variation w.r.t. error ------------------
-        # Initialize the table
+        # Initialize the table (performance related)
         alpha_table_error = np.zeros([self.N_sys, len(self.error_vec)])
         beta_table_error = np.zeros([self.N_sys, len(self.error_vec)])
         xi_table_error = np.zeros([self.N_sys, len(self.error_vec)])
         bound_table_error = np.zeros([self.N_sys, len(self.error_vec)])
+
+        # Initialize the table (true cost)
+        true_cost_error = np.zeros([self.N_sys, len(self.error_vec)])
 
         # x_ref_nominal = info_ref['x_ref']
         # u_ref_nominal = info_ref['u_ref']
@@ -804,19 +809,28 @@ class LQ_RDP_Behavior_Multiple:
                 B = self.B_true + self.error_B[:, :, j, i]
 
                 # ------------- Determine the energy bound M_V --------------
-                # Specify the MPC
+                # Specify the MPC (open-loop)
                 my_MPC = LQ_MPC_Controller(self.N_nominal, A, B, self.Q, self.R, self.Q, self.F_u)
 
                 # Initialize a variable to store the open-loop cost
                 temp_energy_vec = np.zeros(x0_vec.shape[1])
 
-                # loop computation
+                # loop computation for different initial states on the boundary of the sub-level set
                 for k in range(x0_vec.shape[1]):
                     info_MPC_test = my_MPC.solve(x0_vec[:, k], info_ref['x_ref'], info_ref['u_ref'])
                     temp_energy_vec[k] = info_MPC_test['V_N']
 
                 # taking the maximum to get an estimate of the energy bar
                 M_V = np.max(temp_energy_vec)
+
+                # -------- Computation of the true cost J^{mu}_N -----------
+                # Specify the MPC (closed-loop)
+                my_simulator = LQ_MPC_Simulator(self.N_mpc, self.N_nominal,
+                                                A, B, self.Q, self.R, self.Q, self.F_u)
+                temp_cl_info = my_simulator.simulate(x_start_global,
+                                                     self.A_true, self.B_true,
+                                                     info_ref['x_ref'], info_ref['u_ref'])
+                true_cost_error[j, i] = temp_cl_info['J_T']
 
                 # ------------- Computation of the value xi ----------------
                 # initialize the calculator
@@ -845,11 +859,14 @@ class LQ_RDP_Behavior_Multiple:
                                            (1 - xi_table_error[j, i] - temp_eta))
 
         # --------------- computation of variation w.r.t. horizon ------------------
-        # Initialize the table
+        # Initialize the table (performance related)
         alpha_table_horizon = np.zeros([self.N_sys, len(self.horizon)])
         beta_table_horizon = np.zeros([self.N_sys, len(self.horizon)])
         xi_table_horizon = np.zeros([self.N_sys, len(self.horizon)])
         bound_table_horizon = np.zeros([self.N_sys, len(self.horizon)])
+
+        # Initialize the table (true cost)
+        true_cost_horizon = np.zeros([self.N_sys, len(self.horizon)])
 
         # get the nominal error
         err_horizon = self.e_nominal
@@ -889,6 +906,15 @@ class LQ_RDP_Behavior_Multiple:
                 # taking the maximum to get an estimate of the energy bar
                 M_V = np.max(temp_energy_vec)
 
+                # -------- Computation of the true cost J^{mu}_N -----------
+                # Specify the MPC (closed-loop)
+                my_simulator = LQ_MPC_Simulator(self.N_mpc, self.horizon[i],
+                                                A, B, self.Q, self.R, self.Q, self.F_u)
+                temp_cl_info = my_simulator.simulate(x_start_global,
+                                                     self.A_true, self.B_true,
+                                                     x_ref_temp, u_ref_temp)
+                true_cost_horizon[j, i] = temp_cl_info['J_T']
+
                 # ------------- Computation of the value xi ----------------
                 # Initialize the calculator
                 temp_calculator = LQ_RDP_Calculator(A, B, self.Q, self.R, self.F_u)
@@ -917,14 +943,17 @@ class LQ_RDP_Behavior_Multiple:
 
         out_dict = {'error': self.error_vec,
                     'horizon': self.horizon,
+                    'V_expert': V_expert,
                     'alpha_table_error': alpha_table_error,
                     'beta_table_error': beta_table_error,
                     'xi_table_error': xi_table_error,
                     'bound_table_error': bound_table_error,
+                    'true_cost_error': true_cost_error,
                     'alpha_table_horizon': alpha_table_horizon,
                     'beta_table_horizon': beta_table_horizon,
                     'xi_table_horizon': xi_table_horizon,
-                    'bound_table_horizon': bound_table_horizon}
+                    'bound_table_horizon': bound_table_horizon,
+                    'true_cost_horizon': true_cost_horizon}
 
         np.savez('data_lq_mpc_multipleSys.npz', **out_dict)
         return out_dict
@@ -1259,6 +1288,50 @@ class Plotter_PF_LQMPC_Multiple:
                                bound_text, self.colors['C3'],
                                self.font_type, self.font_size, info_zoom,
                                marker=True, y_scale_log=True, set_x_ticks=True)
+        # Show and save
+        plt.tight_layout()
+        plt.savefig(figure_name + '.' + self.info_save['type'], format=self.info_save['type'],
+                    dpi=self.info_save['dpi'])
+        plt.show()
+
+    def plotter_true_cost(self, N_nominal: int, error: np.ndarray,
+                          err_nominal: float, horizon: np.ndarray,
+                          cost_table_error: np.ndarray, cost_table_horizon: np.ndarray,
+                          info_zoom_error: dict, info_zoom_horizon: dict,
+                          figure_name: str) -> None:
+        """
+        Plot the true cost behavior w.r.t. both the changes of the error and the horizon
+        :param N_nominal: Nominal prediction horizon
+        :param error: the error vector
+        :param err_nominal: Nominal modeling error
+        :param horizon: the horizon vector
+        :param cost_table_error: data with varying error
+        :param cost_table_horizon: data with varying horizon
+        :param info_zoom_error: zoomed-in information for error plot
+        :param info_zoom_horizon: zoomed-in information for prediction plot
+        :param figure_name: the name of the figure
+        :return: None (simply do the plotting)
+        """
+        fig, ax = plt.subplots(1, 2,
+                               figsize=(self.fig_size[0] * 2, self.fig_size[1] * 1))
+
+        # specify the text
+        error_text = {'title': r'$N = {}$'.format(N_nominal),
+                      'x_label': r'$\delta$',
+                      'data': r'$J^{[\hat{\mu}_N]}_{\infty}$'}
+        horizon_text = {'title': r'$\delta_A = \delta_B = {}$'.format(err_nominal),
+                        'x_label': r'$N$',
+                        'data': r'$J^{[\hat{\mu}_N]}_{\infty}$'}
+
+        # do the plotting
+        statistical_continuous(ax[0], error, cost_table_error,
+                               error_text, self.colors['C4'],
+                               self.font_type, self.font_size, info_zoom_error)
+        statistical_continuous(ax[1], horizon, cost_table_horizon,
+                               horizon_text, self.colors['C4'],
+                               self.font_type, self.font_size, info_zoom_horizon,
+                               marker=True, set_x_ticks=True)
+
         # Show and save
         plt.tight_layout()
         plt.savefig(figure_name + '.' + self.info_save['type'], format=self.info_save['type'],

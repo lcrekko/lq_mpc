@@ -29,13 +29,15 @@ info_opc = {'A': A, 'B': B,
             'F_u': F_u}
 
 # --------------- Prediction horizon and reference information -------------
-N_min = 6
-N_max = 10
-N_nominal = 7
-N_opc = 30
+N_min = 6  # Minimum considered prediction horizon
+N_max = 10  # Maximum considered prediction horizon
+N_nominal = 7  # Nominal prediction horizon
+N_opc = 30  # Open-loop control horizon
+N_mpc = 30  # Closed-loop control horizon
 
 info_N = {'N_min': N_min, 'N_max': N_max,
-          'N_nominal': N_nominal, 'N_opc': N_opc}
+          'N_nominal': N_nominal, 'N_opc': N_opc,
+          'N_mpc': N_mpc}
 
 # Specify the reference
 x_ref = np.zeros([n_x, N_nominal])  # mpc reference trajectory
@@ -133,3 +135,29 @@ my_plotter.plotter_horizon(e_nominal, data_table['horizon'],
                            data_table['alpha_table_horizon'], data_table['beta_table_horizon'],
                            data_table['xi_table_horizon'], data_table['bound_table_horizon'],
                            info_zoom_horizon, 'horizon_variation')
+
+info_zoom_error_true_cost = {'zoom': False,
+                             'ratio': 3,
+                             'loc': 'lower right',
+                             'x_range': (0.004, 0.005),
+                             'set_x_ticks': False,
+                             'x_ticks': [0.004, 0.005],
+                             'y_auto': True,
+                             'y_range': (0, 1)}
+info_zoom_horizon_true_cost = {'zoom': False,
+                               'ratio': 10,
+                               'loc': 'lower right',
+                               'x_range': (6.9, 7.1),
+                               'set_x_ticks': True,
+                               'x_ticks': [7],
+                               'y_auto': True,
+                               'y_range': (0, 1)}
+
+my_plotter.plotter_true_cost(N_nominal, data_table['error'],
+                             e_nominal, data_table['horizon'],
+                             data_table['true_cost_error'], data_table['true_cost_horizon'],
+                             info_zoom_error_true_cost, info_zoom_horizon_true_cost,
+                             'true_cost_variation')
+
+print('The spectral radius of matrix A is', np.max(np.abs(np.linalg.eigvals(A))))
+print(data_table['V_expert'])
