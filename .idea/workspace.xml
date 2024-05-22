@@ -4,15 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="63ea9d13-1b9c-4a47-973b-39700708c2ac" name="Changes" comment="The size of the random matrix is set as 100,&#10;new data is generated and saved, new figures are plotted and saved.">
-      <change afterPath="$PROJECT_DIR$/true_cost_variation.svg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_lq_mpc_multipleSys.npz" beforeDir="false" afterPath="$PROJECT_DIR$/data_lq_mpc_multipleSys.npz" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/error_variation.svg" beforeDir="false" afterPath="$PROJECT_DIR$/error_variation.svg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/horizon_variation.svg" beforeDir="false" afterPath="$PROJECT_DIR$/horizon_variation.svg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils_class.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils_class.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/working_example_multiple.py" beforeDir="false" afterPath="$PROJECT_DIR$/working_example_multiple.py" afterDir="false" />
-    </list>
+    <list default="true" id="63ea9d13-1b9c-4a47-973b-39700708c2ac" name="Changes" comment="latest changes made" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -304,7 +296,15 @@
       <option name="project" value="LOCAL" />
       <updated>1716336962326</updated>
     </task>
-    <option name="localTasksCounter" value="22" />
+    <task id="LOCAL-00022" summary="latest changes made">
+      <option name="closed" value="true" />
+      <created>1716401379750</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1716401379750</updated>
+    </task>
+    <option name="localTasksCounter" value="23" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -330,7 +330,8 @@
     <MESSAGE value="The multiple system simulation is finished, the result is good!" />
     <MESSAGE value="The figures in multiple system plots are further refined with zoomed-in functionality.&#10;A bug has been removed, now the two variation figures are consistent with each other" />
     <MESSAGE value="The size of the random matrix is set as 100,&#10;new data is generated and saved, new figures are plotted and saved." />
-    <option name="LAST_COMMIT_MESSAGE" value="The size of the random matrix is set as 100,&#10;new data is generated and saved, new figures are plotted and saved." />
+    <MESSAGE value="latest changes made" />
+    <option name="LAST_COMMIT_MESSAGE" value="latest changes made" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
