@@ -1,12 +1,15 @@
-# Performance Analysis of Certainty-equivalent Linear Model Predictive Control
+# Performance Analysis of Certainty-Equivalent Linear Model Predictive Control
 
 This Python project contains the code for analyzing the worst-case
 **infinite-horizon performance** of certainty-equivalent model
 predictive control for **linear** systems under **quadratic** cost
 functions. The background information and theoretical analysis can be
-found in the paper
-> C. Liu, S. Shi, and B. De Schutter, "Stability and performance analysis
-> of model predictive control of uncertain linear systems."
+found in the following paper:
+
+C. Liu, S. Shi, and B. De Schutter, "Stability and performance analysis 
+of model predictive control of uncertain linear systems." arXiv preprint 
+[arXiv:2405.15552, 2024](https://arxiv.org/abs/2405.15552).
+
 
 ## Required packages:
 
